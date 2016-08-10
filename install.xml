@@ -3,7 +3,7 @@
 <extension>
 	<name>PLUGIN_MIXCLOUD</name>
 	<module>Plugins::MixCloud::Plugin</module>
-	<version>0.0.1</version>
+	<version>0.1</version>
 	<description>PLUGIN_MIXCLOUD_DESC</description>
 	<icon>plugins/MixCloud/icon.png</icon>
 	<defaultState>enabled</defaultState>
@@ -13,6 +13,6 @@
         	<maxVersion>7.*</maxVersion>
 	</targetApplication>
   	<optionsURL>plugins/MixCloud/settings/basic.html</optionsURL>
-  	<creator>Christian Mueller</creator>
-  	<email></email>
+  	<creator>Christian Mueller, Daniel Vijge</creator>
+  	<email>spam+squeezebox@vijge.net</email>
 </extension>
