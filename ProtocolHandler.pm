@@ -248,8 +248,7 @@ sub _fetchMeta {
 				artist  => $track->{'user'}->{'username'},
 				album   => " ",
 				secs    => $secs,
-				cover   => $icon,				
-				tracknum=> 1,
+				cover   => $icon,
 				stash => {meta => 1}
 			});			
 		}, 
