@@ -1,11 +1,11 @@
 PLUGIN_MIXCLOUD
-	EN	MIXCLOUD
+	EN	Mixcloud
 
 MIXCLOUD
-	EN	MIXCLOUD
+	EN	Mixcloud
 
 PLUGIN_MIXCLOUD_DESC
-	EN	Play music from MIXCLOUD.
+	EN	Play music from Mixcloud.
 
 PLUGIN_MIXCLOUD_HOT
 	EN	Hot Mixes
@@ -23,7 +23,7 @@ PLUGIN_MIXCLOUD_NEW
 	EN	New Mixes
 
 PLUGIN_MIXCLOUD_URL
-	EN	MixCloud URL
+	EN	Mixcloud URL
 
 PLUGIN_MIXCLOUD_FAVORITES
 	EN	Favorites
