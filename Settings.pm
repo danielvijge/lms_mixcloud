@@ -20,7 +20,7 @@ sub page {
 }
 
 sub prefs {
-	return (preferences('plugin.mixcloud'), qw(apiKey playmethod));
+	return (preferences('plugin.mixcloud'), qw(apiKey playformat));
 }
 
 1;

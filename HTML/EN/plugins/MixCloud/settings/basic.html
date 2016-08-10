@@ -4,16 +4,16 @@
 	<div class="prefDesc">
 		<input type="text" class="stdedit" name="pref_apiKey" value="[% prefs.apiKey %]" size="40" />
 		<br/>
-		<a target="_blank" href="http://findechris.github.io/lms_mixcloud/app.html">Get your apiKey for mixcloud at mixcloud.com</a>
+		<a target="_blank" href="http://findechris.github.io/lms_mixcloud/app.html">Get your apiKey for Mixcloud at mixcloud.com</a>
 	</div>
 
 	[% END %]
 
 	[% WRAPPER setting title="PLUGIN_MIXCLOUD_PLAYMETHOD" desc="PLUGIN_MIXCLOUD_PLAYMETHOD_DESC" %]
 	<div class="prefDesc">
-		<select name="pref_playmethod" class="stdedit">
-			<option[% IF prefs.playmethod == 'stream' %] selected[% END %] value="mp3">Use Mp3 Format if available</option>
-			<option[% IF prefs.playmethod == 'download' %] selected[% END %] value="mp4">Always use Mp4 Format</option>
+		<select name="pref_playformat" class="stdedit">
+			<option[% IF prefs.playformat == 'mp3' %] selected[% END %] value="mp3">Use MP3 format if available</option>
+			<option[% IF prefs.playformat == 'mp4' %] selected[% END %] value="mp4">Always use MP4 format</option>
 		</select>
 	</div>
 
