@@ -372,15 +372,15 @@ sub _parseUser {
 	my $key = substr($json->{'key'},1);
 	push(@$menu, 
 		{ name => string('PLUGIN_MIXCLOUD_FOLLOWING')." (".$json->{'following_count'}.")", type => 'link',
-			url  => \&tracksHandler, passthrough => [ { type => 'following',params => $key."following",parser => \&_parseUsers } ] }
+			url  => \&tracksHandler, passthrough => [ { total => $json->{'following_count'},type => 'following',params => $key."following",parser => \&_parseUsers } ] }
 	);
 	push(@$menu, 
 		{ name => string('PLUGIN_MIXCLOUD_FAVORITES')." (".$json->{'favorite_count'}.")", type => 'link',
-			url  => \&tracksHandler, passthrough => [ { type => 'favorites',params => $key."favorites" } ] }
+			url  => \&tracksHandler, passthrough => [ { total => $json->{'favorite_count'},type => 'favorites',params => $key."favorites" } ] }
 	);
 	push(@$menu, 
 		{ name => string('PLUGIN_MIXCLOUD_CLOUDCASTS')." (".$json->{'cloudcast_count'}.")", type => 'link',
-			url  => \&tracksHandler, passthrough => [ { type => 'cloudcasts',params => $key."cloudcasts"} ] }
+			url  => \&tracksHandler, passthrough => [ { total => $json->{'cloudcast_count'},type => 'cloudcasts',params => $key."cloudcasts"} ] }
 	);
 }
 
