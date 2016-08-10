@@ -33,9 +33,6 @@ my $CLIENT_ID = "Js32JMBmKGRg4zjHrY";
 my $CLIENT_SECRET = "E3uDXKnsMdWjxJMRtkY3e52JZfUAGnwM";
 my $token = "";
 
-my %METADATA_CACHE= {};
-
-
 BEGIN {
 	$log = Slim::Utils::Log->addLogCategory({
 		'category'     => 'plugin.mixcloud',
