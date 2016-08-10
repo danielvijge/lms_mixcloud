@@ -39,7 +39,7 @@ my %METADATA_CACHE= {};
 BEGIN {
 	$log = Slim::Utils::Log->addLogCategory({
 		'category'     => 'plugin.mixcloud',
-		'defaultLevel' => 'DEBUG',
+		'defaultLevel' => 'WARN',
 		'description'  => string('PLUGIN_MIXCLOUD'),
 	});   
 
