@@ -488,7 +488,7 @@ sub toplevel {
 				push(@$callbacks, 
 					{ name => string('PLUGIN_MIXCLOUD_URL'), type => 'search', url  => \&urlHandler }
 				);
-				$callback->($callbacks);			
+				$callback->($callbacks);
 			}
 	)
 	
