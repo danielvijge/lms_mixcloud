@@ -474,7 +474,7 @@ sub toplevel {
 	getToken(
 			 sub{
 				if ($token ne '') {
-					push(@$callbacks, 
+					unshift(@$callbacks, 
 						{ name => string('PLUGIN_MIXCLOUD_MYMIXCLOUD'), type => 'link',
 						url  => \&tracksHandler, passthrough => [ { type=>'user', params => 'me/',parser=>\&_parseUser} ] }						
 					);
