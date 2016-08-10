@@ -180,8 +180,8 @@ sub getTrackUrl{
 	my $track = Slim::Schema::RemoteTrack->fetch($url);
 	if ($track) {
 		my $obj = Slim::Schema::RemoteTrack->updateOrCreate($url, {
-					bitrate   => ($trackdata->{'bitrate'}/1000).'k',
-					type      => $trackdata->{'format'}.' stream (mixcloud.com)',
+					bitrate   => ($trackdata->{'bitrate'}/1000).'kbps',
+					type      => uc($trackdata->{'format'}).' (Mixcloud)',
 					stash => {format => $trackdata->{'format'},formaturl=>$trackdata->{'url'},bitrate=>$trackdata->{'bitrate'}}
 				});
 	}
@@ -202,7 +202,7 @@ sub getMetadataFor {
 			image => $track->cover,
 			cover    => $track->cover,
 			bitrate  => $track->bitrate,
-			type     => $track->stash->{'format'}.' Mixcloud',
+			type     => $track->type,
 			#albumuri => $track->stash->{'albumuri'},
 			#artistA  => $track->stash->{'artists'},
 		};
