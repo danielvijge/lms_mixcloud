@@ -196,7 +196,7 @@ sub getMetadataFor {
 		my $ret = {
 			title    => $track->title,
 			artist   => $track->artist,
-			album    => $track->album,
+			album    => " ",
 			duration => $track->secs,
 			icon     => $track->cover,
 			image => $track->cover,
@@ -246,7 +246,7 @@ sub _fetchMeta {
 			$obj = Slim::Schema::RemoteTrack->updateOrCreate($url, {
 				title   => $track->{'name'}.($track->{'created_time'}?" : ".substr($track->{'created_time'},0,10):""),
 				artist  => $track->{'user'}->{'username'},
-				album   => $track->{'user'}->{'name'},
+				album   => " ",
 				secs    => $secs,
 				cover   => $icon,				
 				tracknum=> 1,
