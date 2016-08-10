@@ -90,31 +90,27 @@ sub _makeMetadata {
 	my $icon = "";
 	if (defined $json->{'pictures'}->{'medium'}) {
 		$icon = $json->{'pictures'}->{'medium'};
-		#$icon =~ s/-large/-t500x500/g;
 	}
+
 	#my ($ss,$mm,$hh,$day,$month,$year,$zone,$help) = strptime($json->{'created_time'});
 	my $dminutes = int(int($json->{'audio_length'})/60);
 	my $dhours = int($dminutes/60);
 	my $dminutesrest = int($dminutes-$dhours*60);
 	my $DATA = {
 		duration => $dhours."h".$dminutesrest."m",
-		name => $json->{'name'}.($json->{'created_time'}?" : ".substr($json->{'created_time'},0,10):""),
+		name => $json->{'name'},
 		title => $json->{'name'},
-		#label => substr($json->{'created_time'},0,10),
-		artists => $json->{'user'}->{'username'},
 		artist => $json->{'user'}->{'username'},
-		album => $json->{'user'}->{'name'},
+		album => " ",
 		play => "mixcloud:/" . $json->{'key'},
 		bitrate => '320/70',
-		#url => \&_fetchMeta,
+		type => 'MP3 (Mixcloud)',
 		passthrough => [ { key => $json->{'key'}} ],
-		type => 'audio',
-		#line1 => $json->{'name'},
-		#line2 => $json->{'name'},
 		icon => $icon,
 		image => $icon,
 		cover => $icon,
-	};	
+		on_select => 'play',
+	};
 	return $DATA;
 }
 
@@ -356,8 +352,8 @@ sub _parseUsers {
 		my $username = $entry->{'username'};
 		my $key = substr($entry->{'key'},1);
 		my $icon = "";
-		if (defined $json->{'pictures'}->{'medium'}) {
-			$icon = $json->{'pictures'}->{'medium'};
+		if (defined $entry->{'pictures'}->{'medium'}) {
+			$icon = $entry->{'pictures'}->{'medium'};
 		}
 		push @$menu, {
 			name => $name,
