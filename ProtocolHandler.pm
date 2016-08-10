@@ -230,7 +230,7 @@ sub _fetchMeta {
 			}
 
 			my $obj;
-			my $format = "mp3";
+			my $format = "MP3 (Mixcloud)";
 			my $trackurl = "";
 			my $bitrate = 70000;		
 			$log->debug("caching meta for $format with URL $url new track url ".$trackurl);
