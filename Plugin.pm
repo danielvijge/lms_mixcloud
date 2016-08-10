@@ -85,8 +85,12 @@ sub _makeMetadata {
 	my ($json) = shift;
 
 	my $icon = "";
-	if (defined $json->{'pictures'}->{'medium'}) {
-		$icon = $json->{'pictures'}->{'medium'};
+	if (defined $json->{'pictures'}->{'large'}) {
+		$icon = $json->{'pictures'}->{'large'};
+	}else{
+		if (defined $json->{'pictures'}->{'medium'}) {
+			$icon = $json->{'pictures'}->{'medium'};
+		}
 	}
 
 	#my ($ss,$mm,$hh,$day,$month,$year,$zone,$help) = strptime($json->{'created_time'});
@@ -349,8 +353,12 @@ sub _parseUsers {
 		my $username = $entry->{'username'};
 		my $key = substr($entry->{'key'},1);
 		my $icon = "";
-		if (defined $entry->{'pictures'}->{'medium'}) {
-			$icon = $entry->{'pictures'}->{'medium'};
+		if (defined $entry->{'pictures'}->{'large'}) {
+			$icon = $entry->{'pictures'}->{'large'};
+		}else{
+			if (defined $entry->{'pictures'}->{'medium'}) {
+				$icon = $entry->{'pictures'}->{'medium'};
+			}
 		}
 		push @$menu, {
 			name => $name,
