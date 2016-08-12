@@ -54,7 +54,7 @@ BEGIN {
 
 my $prefs = preferences('plugin.mixcloud');
 
-$prefs->init({ apiKey => "", playformat => "mp3" });
+$prefs->init({ apiKey => "", playformat => "mp4" });
 
 sub getToken {
 	my ($callback) = shift;

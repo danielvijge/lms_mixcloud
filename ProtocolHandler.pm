@@ -33,7 +33,7 @@ use strict;
 Slim::Player::ProtocolHandlers->registerHandler('mixcloud', __PACKAGE__);
 Slim::Player::ProtocolHandlers->registerHandler('mixcloudd' => 'Plugins::MixCloud::ProtocolHandlerDirect');
 my $prefs = preferences('plugin.mixcloud');
-$prefs->init({ playformat => "mp3"});
+$prefs->init({ apiKey => "", playformat => "mp4"});
 
 sub new {
 	my $class  = shift;

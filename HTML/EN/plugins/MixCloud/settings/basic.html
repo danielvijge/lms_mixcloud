@@ -12,8 +12,8 @@
 	[% WRAPPER setting title="PLUGIN_MIXCLOUD_PLAYMETHOD" desc="PLUGIN_MIXCLOUD_PLAYMETHOD_DESC" %]
 	<div class="prefDesc">
 		<select name="pref_playformat" class="stdedit">
-			<option[% IF prefs.playformat == 'mp3' %] selected[% END %] value="mp3">Use MP3 format if available</option>
 			<option[% IF prefs.playformat == 'mp4' %] selected[% END %] value="mp4">Always use MP4 format</option>
+			<option[% IF prefs.playformat == 'mp3' %] selected[% END %] value="mp3">Use MP3 format if available</option>
 		</select>
 	</div>
 
