@@ -23,7 +23,7 @@ var get_params = function(search_string) {
 
 var params = get_params(location.search);
 console.log(params);
-var testurl = "https://www.mixcloud.com/oauth/authorize?client_id=Js32JMBmKGRg4zjHrY&redirect_uri=http://findechris.github.io/lms_mixcloud/app.html";
+var testurl = "https://www.mixcloud.com/oauth/authorize?client_id=2aB9WjPEAButp4HSxY&redirect_uri=http://danielvijge.github.io/lms_mixcloud/app.html";
 if(params["code"]){
 	$("#myparam").html(params["code"]);
 }else{
