@@ -117,12 +117,12 @@ sub getTrackUrl{
 		my $url = "https://www.mixcloud.com/".$trackhome;
 		#my $content = get($url);
 		my $response = $ua->get($url);
-		$log->info("#####################################################################Got Mixcloud CONTENT:".$response->decoded_content);
+		#$log->debug($response->decoded_content);
 		my $content = $response->decoded_content;
 		$content =~ m/(?<=\.mixcloud\.com\/previews\/)([^\.]+\.mp3)/i;			
 		my $trackid = substr($1,0,-4);
 		$ua->timeout(5);
-		$log->info("################################################Got Mixcloud TrackId:".$1);
+		$log->info("Mixcloud TrackId: ".$1);
 		my $found = 0;
 		my $m4aurl = "/c/m4a/64/".$trackid.".m4a";
 		my $mp3url = "/c/originals/".$trackid.".mp3";
@@ -133,16 +133,18 @@ sub getTrackUrl{
 			}else{
 				$trackurl = $trackurl.$m4aurl;
 			}
+			$log->debug("Trying TrackUrl: ".$trackurl);
 			my $response = $ua->head($trackurl);
 			if ($response->is_success) {
 				$found = 1;
-				#$log->debug("Got Mixcloud TrackUrl:".$trackurl);
+				$log->debug("Got Mixcloud TrackUrl: ".$trackurl);
 				last;
 			} else {
 				#print "Does not exist or timeout\n";;
 			}
 		}
 		if ($found == 0) {			
+			$log->warn("Failed to find track in perfered format $firstFormat. Trying ".($firstFormat eq "mp3" ? "mp4" : "mp3")." format");
 			for (my $i=1; $i <= 50; $i++) {
 				$trackurl = "http://stream".$i.".mixcloud.com";
 				if($firstFormat eq "mp4"){
@@ -152,10 +154,11 @@ sub getTrackUrl{
 					$format = "mp4";
 					$trackurl = $trackurl.$m4aurl;
 				}
+				$log->debug("Trying TrackUrl: ".$trackurl);
 				my $response = $ua->head($trackurl);
 				if ($response->is_success) {
 					$found = 1;
-					#$log->debug("Got Mixcloud TrackUrl:".$trackurl);
+					$log->debug("Got Mixcloud TrackUrl: ".$trackurl);
 					last;
 				} else {
 					#print "Does not exist or timeout\n";;
@@ -163,7 +166,7 @@ sub getTrackUrl{
 			}	
 		}
 		if ($found == 1) {		
-			$log->info("setting ". 'mixcloud_meta_urls ' . $trackhome);
+			$log->debug("setting cache ". 'mixcloud_meta_urls ' . $trackhome);
 			if ($urldata) {
 				$urldata->{$format."_url"}=$trackurl;
 			}else{
@@ -172,7 +175,7 @@ sub getTrackUrl{
 				}
 			}		
 			$cache->set( 'mixcloud_meta_urls' . $trackhome, $urldata, 86400 );
-			$log->info("-----------------------------------------------------------------------FOUND TRACK FORMAT $format URL: $trackurl");
+			$log->info("Found track format $format at URL: $trackurl");
 		}
 	}
 	
@@ -192,7 +195,7 @@ sub getMetadataFor {
 	$log->debug("getMetadataFor: ".$url);
 	my $track = Slim::Schema::RemoteTrack->fetch($url);	
 	if ($track && $track->stash->{'meta'}) {
-		$log->debug("----------------------------------getMetadataFor TRACK TITLE: ".$track->cover);
+		$log->debug("known getMetadataFor for track: ".$track->title);
 		my $ret = {
 			title    => $track->title,
 			artist   => $track->artist,
@@ -208,7 +211,7 @@ sub getMetadataFor {
 		};
 		return $ret;
 	} else {
-		$log->info("---------------------------------------------------------------------------fetch of meta for $url");
+		$log->debug("need to fetch meta for $url");
 		_fetchMeta($url);
 	}
 	return {};
@@ -219,7 +222,7 @@ sub _fetchMeta {
 	
 	my ($trackhome) = $url =~ m{^mixcloud://(.*)$};
 	my $fetchURL = "http://api.mixcloud.com/" . $trackhome ;
-	$log->debug("-------------------------------------------------------------------fetching meta for $url with $fetchURL");
+	$log->debug("fetching meta for $url with $fetchURL");
 	Slim::Networking::SimpleAsyncHTTP->new(
 		
 		sub {
@@ -254,7 +257,7 @@ sub _fetchMeta {
 		}, 
 		
 		sub {
-			$log->warn("error fetching track data: $_[1]");
+			$log->error("error fetching track data: $_[1]");
 		},
 		
 		{ timeout => 35 },
@@ -270,13 +273,13 @@ sub trackInfo {
 	my ( $class, $client, $track ) = @_;
 
 	my $url = $track->url;
-	$log->info("trackInfo: " . $url);
+	$log->debug("trackInfo: " . $url);
 	return undef;
 }
 # Track Info menu
 sub trackInfoURL {
 	my ( $class, $client, $url ) = @_;
-	$log->info("trackInfoURL: " . $url);
+	$log->debug("trackInfoURL: " . $url);
 	return undef;
 }
 
@@ -355,7 +358,7 @@ sub parseDirectHeaders {
 	}
 	
 	$contentType = Slim::Music::Info::mimeToType($contentType);
-	$log->info("DIRECT HEADER: ".$contentType);
+	$log->debug("DIRECT HEADER: ".$contentType);
 	if ( !$contentType ) {
 		$contentType = 'mp3';
 	}elsif($contentType eq 'mp4'){
@@ -408,7 +411,7 @@ sub requestString {
 		$client->songBytes(int( $seekdata->{sourceStreamOffset} ));
 	}
 	$request .= $CRLF . $CRLF;		
-	$log->info($request);
+	$log->debug($request);
 	return $request;
 }
 

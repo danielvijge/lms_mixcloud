@@ -60,19 +60,19 @@ sub getToken {
 	my ($callback) = shift;
 	if ($prefs->get('apiKey')) {
 		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=http://findechris.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
-		$log->info("gettokenurl:".$tokenurl);
+		$log->info("gettokenurl: ".$tokenurl);
 		Slim::Networking::SimpleAsyncHTTP->new(			
 				sub {
 					my $http = shift;				
 					my $json = eval { from_json($http->content) };
 					if ($json->{"access_token"}) {
 						$token = $json->{"access_token"};
-						$log->info("token:".$token);
+						$log->info("token: ".$token);
 					}				
 					$callback->({token=>$token});	
 				},			
 				sub {
-					$log->warn("error: $_[1]");
+					$log->error("Error: $_[1]");
 					$callback->({});
 				},			
 		)->get($tokenurl);
@@ -119,7 +119,7 @@ sub _fetchMeta {
 	my ($client, $callback, $args, $passDict) = @_;
 	
 	my $fetchURL = "http://api.mixcloud.com" . $passDict->{"key"} ;
-	$log->debug("fetching meta for $fetchURL");
+	$log->info("fetching meta for $fetchURL");
 	Slim::Networking::SimpleAsyncHTTP->new(
 		
 		sub {
@@ -161,9 +161,9 @@ sub tracksHandler {
 	my $parser = $passDict->{'parser'} || \&_parseTracks;
 	my $params = $passDict->{'params'} || '';
 
-	$log->warn('search type: ' . $searchType);
-	$log->warn("index: " . $index);
-	$log->warn("quantity: " . $quantity);
+	$log->debug('search type: ' . $searchType);
+	$log->debug("index: " . $index);
+	$log->debug("quantity: " . $quantity);
 	
 	my $menu = [];
 	
@@ -175,9 +175,9 @@ sub tracksHandler {
 	$fetch = sub {
 		# in case we've already fetched some of this page, keep going
 		my $i = $index + scalar @$menu;
-		$log->warn("i: " . $i);
+		$log->debug("i: " . $i);
 		my $max = min($quantity - scalar @$menu, 200); # api allows max of 200 items per response
-		$log->warn("max: " . $max);
+		$log->debug("max: " . $max);
 		my $method = "http";
 		my $uid = $passDict->{'uid'} || '';
 		my $resource = "";
@@ -231,7 +231,7 @@ sub tracksHandler {
 		
 		my $queryUrl = "$method://api.mixcloud.com/$resource?offset=$i&limit=$quantity&" . $params;
 		#$queryUrl= "http://192.168.56.1/json/cloudcasts.json";
-		$log->warn("fetching: $queryUrl");
+		$log->info("fetching: $queryUrl");
 		
 		Slim::Networking::SimpleAsyncHTTP->new(
 			
@@ -247,7 +247,7 @@ sub tracksHandler {
 					$total = $passDict->{'total'}
 				}
 				
-				$log->info("this page: " . scalar @$menu . " total: $total");
+				$log->debug("this page: " . scalar @$menu . " total: $total");
 
 				# TODO: check this logic makes sense
 				if (scalar @$menu < $quantity) {
@@ -265,7 +265,7 @@ sub tracksHandler {
 				}
 			},			
 			sub {
-				$log->warn("error: $_[1]");
+				$log->error("error: $_[1]");
 				$callback->([ { name => $_[1], type => 'text' } ]);
 			},
 			
@@ -286,6 +286,8 @@ sub urlHandler {
 	my ($trackhome) = $url =~ m{^https://www.mixcloud.com/(.*)$};
 	my $queryUrl = "http://api.mixcloud.com/" . $trackhome ;
 
+	$log->debug("fetching $queryUrl");
+
 	my $fetch = sub {
 		Slim::Networking::SimpleAsyncHTTP->new(
 			sub {
@@ -297,7 +299,7 @@ sub urlHandler {
 				});
 			},
 			sub {
-				$log->warn("error: $_[1]");
+				$log->error("error: $_[1]");
 				$callback->([ { name => $_[1], type => 'text' } ]);
 			},
 		)->get($queryUrl);
