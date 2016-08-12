@@ -93,19 +93,15 @@ sub _makeMetadata {
 		}
 	}
 
-	#my ($ss,$mm,$hh,$day,$month,$year,$zone,$help) = strptime($json->{'created_time'});
-	my $dminutes = int(int($json->{'audio_length'})/60);
-	my $dhours = int($dminutes/60);
-	my $dminutesrest = int($dminutes-$dhours*60);
 	my $DATA = {
-		duration => $dhours."h".$dminutesrest."m",
+		duration => $json->{'audio_length'},
 		name => $json->{'name'},
 		title => $json->{'name'},
 		artist => $json->{'user'}->{'username'},
 		album => " ",
 		play => "mixcloud:/" . $json->{'key'},
-		bitrate => '320/70',
-		type => 'MP3 (Mixcloud)',
+		bitrate => '320kbps/70kbps',
+		type => 'MP3/MP4 (Mixcloud)',
 		passthrough => [ { key => $json->{'key'}} ],
 		icon => $icon,
 		image => $icon,
