@@ -282,7 +282,8 @@ sub urlHandler {
 	
 	$url =~ s/ com/.com/;
 	$url =~ s/www /www./;
-	my ($trackhome) = $url =~ m{^http://www.mixcloud.com/(.*)$};
+	$url =~ s/http:\/\/ /https:\/\//;
+	my ($trackhome) = $url =~ m{^https://www.mixcloud.com/(.*)$};
 	my $queryUrl = "http://api.mixcloud.com/" . $trackhome ;
 
 	my $fetch = sub {
