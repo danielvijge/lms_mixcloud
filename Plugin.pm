@@ -29,8 +29,8 @@ use Plugins::MixCloud::ProtocolHandler;
 
 my $log;
 my $compat;
-my $CLIENT_ID = "Js32JMBmKGRg4zjHrY";
-my $CLIENT_SECRET = "E3uDXKnsMdWjxJMRtkY3e52JZfUAGnwM";
+my $CLIENT_ID = "2aB9WjPEAButp4HSxY";
+my $CLIENT_SECRET = "scDXfRbbTyDHHGgDhhSccHpNgYUa7QAW";
 my $token = "";
 
 BEGIN {
@@ -59,7 +59,7 @@ $prefs->init({ apiKey => "", playformat => "mp3" });
 sub getToken {
 	my ($callback) = shift;
 	if ($prefs->get('apiKey')) {
-		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=http://findechris.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
+		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=https://danielvijge.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
 		$log->info("gettokenurl: ".$tokenurl);
 		Slim::Networking::SimpleAsyncHTTP->new(			
 				sub {
