@@ -374,18 +374,27 @@ sub _parseUsers {
 sub _parseUser {
 	my ($json, $menu) = @_;
 	my $key = substr($json->{'key'},1);
-	push(@$menu, 
-		{ name => string('PLUGIN_MIXCLOUD_FOLLOWING')." (".$json->{'following_count'}.")", type => 'link',
-			url  => \&tracksHandler, passthrough => [ { total => $json->{'following_count'},type => 'following',params => $key."following",parser => \&_parseUsers } ] }
-	);
-	push(@$menu, 
-		{ name => string('PLUGIN_MIXCLOUD_FAVORITES')." (".$json->{'favorite_count'}.")", type => 'link',
-			url  => \&tracksHandler, passthrough => [ { total => $json->{'favorite_count'},type => 'favorites',params => $key."favorites" } ] }
-	);
-	push(@$menu, 
-		{ name => string('PLUGIN_MIXCLOUD_CLOUDCASTS')." (".$json->{'cloudcast_count'}.")", type => 'link',
-			url  => \&tracksHandler, passthrough => [ { total => $json->{'cloudcast_count'},type => 'cloudcasts',params => $key."cloudcasts"} ] }
-	);
+
+	if ($json->{'following_count'} > 0) {
+		push(@$menu, 
+			{ name => string('PLUGIN_MIXCLOUD_FOLLOWING'), type => 'link',
+				url  => \&tracksHandler, passthrough => [ { total => $json->{'following_count'},type => 'following',params => $key."following",parser => \&_parseUsers } ] }
+		);
+	}
+
+	if ($json->{'favorite_count'} > 0) {
+		push(@$menu, 
+			{ name => string('PLUGIN_MIXCLOUD_FAVORITES'), type => 'link',
+				url  => \&tracksHandler, passthrough => [ { total => $json->{'favorite_count'},type => 'favorites',params => $key."favorites" } ] }
+		);
+	}
+
+	if ($json->{'cloudcast_count'} > 0) {
+		push(@$menu, 
+			{ name => string('PLUGIN_MIXCLOUD_CLOUDCASTS'), type => 'link',
+				url  => \&tracksHandler, passthrough => [ { total => $json->{'cloudcast_count'},type => 'cloudcasts',params => $key."cloudcasts"} ] }
+		);
+	}
 }
 
 sub _tagHandler {
