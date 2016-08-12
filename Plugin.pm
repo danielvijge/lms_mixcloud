@@ -396,14 +396,11 @@ sub _tagHandler {
 	my ($client, $callback, $args, $passDict) = @_;
 	my $params = $passDict->{'params'} || '';
 	my $callbacks = [
-		{ name => string('PLUGIN_MIXCLOUD_NEW'), type => 'link',   
-			url  => \&tracksHandler, passthrough => [ {type=>'tags' ,params=>$params.'new/' } ], },
-
 		{ name => string('PLUGIN_MIXCLOUD_POPULAR'), type => 'link',   
 			url  => \&tracksHandler, passthrough => [ {type=>'tags'  ,params=>$params.'popular/'} ], },
 		
-		{ name => string('PLUGIN_MIXCLOUD_HOT'), type => 'link',   
-			url  => \&tracksHandler, passthrough => [ {type=>'tags' ,params=>$params.'hot/' } ], },
+		{ name => string('PLUGIN_MIXCLOUD_LATEST'), type => 'link',   
+			url  => \&tracksHandler, passthrough => [ {type=>'tags' ,params=>$params.'latest/' } ], },
 
 	];
 	$callback->($callbacks);
