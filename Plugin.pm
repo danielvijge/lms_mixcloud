@@ -60,14 +60,14 @@ sub getToken {
 	my ($callback) = shift;
 	if ($prefs->get('apiKey')) {
 		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=https://danielvijge.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
-		$log->info("gettokenurl: ".$tokenurl);
+		$log->debug("gettokenurl: ".$tokenurl);
 		Slim::Networking::SimpleAsyncHTTP->new(			
 				sub {
 					my $http = shift;				
 					my $json = eval { from_json($http->content) };
 					if ($json->{"access_token"}) {
 						$token = $json->{"access_token"};
-						$log->info("token: ".$token);
+						$log->debug("token: ".$token);
 					}				
 					$callback->({token=>$token});	
 				},			

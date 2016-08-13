@@ -122,7 +122,7 @@ sub getTrackUrl{
 		$content =~ m/(?<=\.mixcloud\.com\/previews\/)([^\.]+\.mp3)/i;			
 		my $trackid = substr($1,0,-4);
 		$ua->timeout(5);
-		$log->info("Mixcloud TrackId: ".$1);
+		$log->debug("Mixcloud TrackId: ".$1);
 		my $found = 0;
 		my $m4aurl = "/c/m4a/64/".$trackid.".m4a";
 		my $mp3url = "/c/originals/".$trackid.".mp3";
