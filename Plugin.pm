@@ -160,7 +160,8 @@ sub tracksHandler {
 	$log->debug('search type: ' . $searchType);
 	$log->debug("index: " . $index);
 	$log->debug("quantity: " . $quantity);
-	
+	$log->debug("params: " . $params);
+
 	my $menu = [];
 	
 	# fetch in stages as api only allows 50 items per response, cli clients require $quantity responses which can be more than 50
@@ -235,7 +236,20 @@ sub tracksHandler {
 				my $http = shift;				
 				my $json = eval { from_json($http->content) };
 				
-				$parser->($json, $menu); 
+				# Special logic for retrieving a category, because the limit
+                # and offset parameters are not supported by the API
+                if ($searchType eq 'categories' && $quantity == 1) {
+                    my $data = $json->{'data'};
+                    my $i = 0;
+                    for my $entry (@$data) {
+                        if ($i == $index) {
+                            $json = { data => [$entry]};
+                        }
+                        $i++;
+                    }
+                } 
+
+				$parser->($json, $menu);
 	
 				# max offset = 8000, max index = 200 sez 
 				my $total = 8000 + $quantity;
