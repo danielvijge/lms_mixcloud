@@ -415,7 +415,20 @@ sub requestString {
 	return $request;
 }
 
-sub canSeek { 1 }
+sub canSeek {
+	my ( $class, $client, $song ) = @_;
+
+	my $url = $song->currentTrack()->url;
+	my $ct = Slim::Music::Info::contentType($url);
+
+	if ( $ct eq 'mp3') {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
 sub canSeekError {
 	my ( $class, $client, $song ) = @_;
 	
@@ -446,7 +459,7 @@ sub getSeekData {
 		
 	$bitrate /= 1000;
 		
-	main::INFOLOG && $log->info( "Trying to seek $newtime seconds into 1000 kbps" );
+	main::INFOLOG && $log->info( "Trying to seek $newtime seconds into $bitrate kbps" );
 	
 	return {
 		sourceStreamOffset   => (( $bitrate * 1000 ) / 8 ) * $newtime,
