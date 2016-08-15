@@ -13,7 +13,7 @@ to add an additional repository, because this is an official third party reposit
 However, if you want to, you can add the repository directly. A new version might be
 earlier available in this repository:
     
-    https://danielvijge.github.io/lms_mixcloud/public.xml
+    http://danielvijge.github.io/lms_mixcloud/public.xml
 
 This Plugin is in Alpha stage and build from the SqueezeCloud Plugin (thanks to the developers), because the documentation
 of the LMS Server is very bad and Perl still sucks.
