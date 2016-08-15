@@ -398,14 +398,14 @@ sub _parseUser {
 
 	if ($json->{'favorite_count'} > 0) {
 		push(@$menu, 
-			{ name => string('PLUGIN_MIXCLOUD_FAVORITES'), type => 'link',
+			{ name => string('PLUGIN_MIXCLOUD_FAVORITES'), type => 'playlist',
 				url  => \&tracksHandler, passthrough => [ { total => $json->{'favorite_count'},type => 'favorites',params => $key."favorites" } ] }
 		);
 	}
 
 	if ($json->{'cloudcast_count'} > 0) {
 		push(@$menu, 
-			{ name => string('PLUGIN_MIXCLOUD_CLOUDCASTS'), type => 'link',
+			{ name => string('PLUGIN_MIXCLOUD_CLOUDCASTS'), type => 'playlist',
 				url  => \&tracksHandler, passthrough => [ { total => $json->{'cloudcast_count'},type => 'cloudcasts',params => $key."cloudcasts"} ] }
 		);
 	}
