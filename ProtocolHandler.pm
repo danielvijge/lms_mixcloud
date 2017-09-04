@@ -51,12 +51,6 @@ sub new {
 		client  => $client,
 	});
 
-	#if (defined($self)) {
-	#	${*$self}{'client'}  = $client;
-	#	${*$self}{'song'}  = $song;
-	#	${*$self}{'url'}     = $streamUrl;
-	#}
-
 	return $self;
 }
 sub isPlaylistURL { 0 }
@@ -64,7 +58,6 @@ sub isRemote { 1 }
 
 sub getFormatForURL {
 	my ($class, $url) = @_;		
-	my ($trackId) = $url =~ m{^mixcloud://(.*)$};
 	my $trackinfo = getTrackUrl($url);
 	return $trackinfo->{'format'};	
 }
@@ -91,129 +84,61 @@ sub getNextTrack {
 
 sub getTrackUrl{
 	my $url = shift;
-	my ($trackhome) = $url =~ m{^mixcloud:/(.*)$};
-	#$log->debug("Fetching Trackhome:".$trackhome);	
-	my $cache = Slim::Utils::Cache->new;	
+	my ($trackhome) = $url =~ m{^mixcloud://(.*)$};
+	$log->debug("Fetching Trackhome: ".$trackhome);	
+	my $cache = Slim::Utils::Cache->new;
 	my $trackurl = "";
-	my $urldata = $cache->get('mixcloud_meta_urls' . $trackhome);
 	my $format = $prefs->get('playformat');
-	my $firstFormat = $prefs->get('playformat');
-	if ($urldata) {
-		#$log->debug ("got cache url". 'mixcloud_meta_urls ' . $trackhome);
-		if (defined $urldata->{$firstFormat."_url"}) {
-			$trackurl = $urldata->{$firstFormat."_url"};
-			$format = $firstFormat;
-		}else{
-			my $secondFormat = ($firstFormat eq "mp3"?"mp4":"mp3");
-			if (defined $urldata->{$secondFormat."_url"}) {
-				$trackurl = $urldata->{$secondFormat."_url"};
-				$format = $secondFormat;
-			}
-		}
+	my $meta = $cache->get( 'mixcloud_meta_' . $url );
+	if ( $meta->{'url'} ) {
+		$log->debug("Got play URL from cache, not retrieving again");
+		$trackurl = $meta->{'url'};
 	}
+
 	if ($trackurl eq "") {
 		my $ua = LWP::UserAgent->new;
-		$ua->agent("Mozilla/5.0 (Windows NT 6.3; WOW64; rv:33.0) Gecko/20100101 Firefox/33.0");
-		my $url = "https://www.mixcloud.com/".$trackhome;
-		#my $content = get($url);
+		$ua->agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0");
+		my $url = "http://www.mixcloud-downloader.com/".$trackhome;
+		$log->debug("Fetching for downloader ".$url);
 		my $response = $ua->get($url);
-		#$log->debug($response->decoded_content);
 		my $content = $response->decoded_content;
-		$content =~ m/(?<=\.mixcloud\.com\/previews\/)([^\.]+\.mp3)/i;			
-		my $trackid = substr($1,0,-4);
-		$ua->timeout(5);
-		$log->debug("Mixcloud TrackId: ".$1);
-		my $found = 0;
-		my $m4aurl = "/c/m4a/64/".$trackid.".m4a";
-		my $mp3url = "/c/originals/".$trackid.".mp3";
-		for (my $i=1; $i <= 50; $i++) {
-			$trackurl = "http://stream".$i.".mixcloud.com";
-			if($firstFormat eq "mp3"){
-				$trackurl = $trackurl.$mp3url;
-			}else{
-				$trackurl = $trackurl.$m4aurl;
-			}
-			$log->debug("Trying TrackUrl: ".$trackurl);
-			my $response = $ua->head($trackurl);
-			if ($response->is_success) {
-				$found = 1;
-				$log->debug("Got Mixcloud TrackUrl: ".$trackurl);
-				last;
-			} else {
-				#print "Does not exist or timeout\n";;
-			}
+		#$log->debug($content);
+		my @regex = ( $content =~ m/\"(https?:\/\/stream[\s\S]+)\"/is );
+		$log->debug("Mixcloud URL from downloader: " . $regex[0] );
+		if ( $regex[0] eq '' ) {
+			$log->error('Error: Cannot get play URL for '.$trackhome.' from '.$url);
+			return;
 		}
-		if ($found == 0) {			
-			$log->warn("Failed to find track in perfered format $firstFormat. Trying ".($firstFormat eq "mp3" ? "mp4" : "mp3")." format");
-			for (my $i=1; $i <= 50; $i++) {
-				$trackurl = "http://stream".$i.".mixcloud.com";
-				if($firstFormat eq "mp4"){
-					$format = "mp3";
-					$trackurl = $trackurl.$mp3url;
-				}else{
-					$format = "mp4";
-					$trackurl = $trackurl.$m4aurl;
-				}
-				$log->debug("Trying TrackUrl: ".$trackurl);
-				my $response = $ua->head($trackurl);
-				if ($response->is_success) {
-					$found = 1;
-					$log->debug("Got Mixcloud TrackUrl: ".$trackurl);
-					last;
-				} else {
-					#print "Does not exist or timeout\n";;
-				}
-			}	
-		}
-		if ($found == 1) {		
-			$log->debug("setting cache ". 'mixcloud_meta_urls ' . $trackhome);
-			if ($urldata) {
-				$urldata->{$format."_url"}=$trackurl;
-			}else{
-				$urldata = {
-					$format."_url" => $trackurl
-				}
-			}		
-			$cache->set( 'mixcloud_meta_urls' . $trackhome, $urldata, 86400 );
-			$log->info("Found track format $format at URL: $trackurl");
-		}
+		$trackurl = $regex[0];
+	}
+
+	my $format = "mp4";
+	if (index($trackurl, '.mp3') != -1) {
+		$format = "mp3";
 	}
 	
 	my $trackdata = {url=>$trackurl,format=>$format,bitrate=>$format eq "mp3"?320000:70000};
-	my $track = Slim::Schema::RemoteTrack->fetch($url);
-	if ($track) {
-		my $obj = Slim::Schema::RemoteTrack->updateOrCreate($url, {
-					bitrate   => ($trackdata->{'bitrate'}/1000).'kbps',
-					type      => uc($trackdata->{'format'}).' (Mixcloud)',
-					stash => {format => $trackdata->{'format'},formaturl=>$trackdata->{'url'},bitrate=>$trackdata->{'bitrate'}}
-				});
-	}
+
+	$meta->{'bitrate'} = ($trackdata->{'bitrate'}/1000).'kbps';
+	$meta->{'type'} = uc($trackdata->{'format'}).' (Mixcloud)';
+	$meta->{'url'} = $trackdata->{'url'};
+	$log->debug("updating ". 'mixcloud_meta_' . $url);
+	$cache->set( 'mixcloud_meta_' . $url, $meta, 3600 );
+
 	return $trackdata;
 }
 sub getMetadataFor {
 	my ($class, $client, $url, undef, $fetch) = @_;
-	$log->debug("getMetadataFor: ".$url);
-	my $track = Slim::Schema::RemoteTrack->fetch($url);	
-	if ($track && $track->stash->{'meta'}) {
-		$log->debug("known getMetadataFor for track: ".$track->title);
-		my $ret = {
-			title    => $track->title,
-			artist   => $track->artist,
-			album    => " ",
-			duration => $track->secs,
-			icon     => $track->cover,
-			image => $track->cover,
-			cover    => $track->cover,
-			bitrate  => $track->bitrate,
-			type     => $track->type,
-			#albumuri => $track->stash->{'albumuri'},
-			#artistA  => $track->stash->{'artists'},
-		};
-		return $ret;
-	} else {
-		$log->debug("need to fetch meta for $url");
-		_fetchMeta($url);
-	}
+	
+	my $cache = Slim::Utils::Cache->new;
+	$log->debug("getting ". 'mixcloud_meta_' . $url);
+	my $meta = $cache->get( 'mixcloud_meta_' . $url );
+
+	return $meta if $meta;
+
+	$log->debug('mixcloud_meta_' . $url .' not in cache. Fetching metadata...');
+	_fetchMeta($url);
+
 	return {};
 }
 
@@ -232,12 +157,6 @@ sub _fetchMeta {
 				$log->warn($@);
 			}
 
-			my $obj;
-			my $format = "MP3 (Mixcloud)";
-			my $trackurl = "";
-			my $bitrate = 70000;		
-			$log->debug("caching meta for $format with URL $url new track url ".$trackurl);
-			my $secs = int($track->{'audio_length'});
 			my $icon = "";
 			if (defined $track->{'pictures'}->{'large'}) {
 				$icon = $track->{'pictures'}->{'large'};
@@ -246,14 +165,28 @@ sub _fetchMeta {
 					$icon = $track->{'pictures'}->{'medium'};
 				}
 			}
-			$obj = Slim::Schema::RemoteTrack->updateOrCreate($url, {
-				title   => $track->{'name'}.($track->{'created_time'}?" : ".substr($track->{'created_time'},0,10):""),
-				artist  => $track->{'user'}->{'username'},
-				album   => " ",
-				secs    => $secs,
-				cover   => $icon,
-				stash => {meta => 1}
-			});			
+
+			my $DATA = {
+				duration => $track->{'audio_length'},
+				name => $track->{'name'},
+				title => $track->{'name'},
+				artist => $track->{'user'}->{'username'},
+				album => " ",
+				play => "mixcloud:/" . $track->{'key'},
+				bitrate => '320kbps/70kbps',
+				type => 'MP3/MP4 (Mixcloud)',
+				passthrough => [ { key => $track->{'key'}} ],
+				icon => $icon,
+				image => $icon,
+				cover => $icon,
+				on_select => 'play',
+			};
+
+			# Already set meta cache here, so that playlist does not have to
+			# query each track individually
+			my $cache = Slim::Utils::Cache->new;
+			$log->debug("setting ". 'mixcloud_meta_' . $DATA->{'play'});
+			$cache->set( 'mixcloud_meta_' . $DATA->{'play'}, $DATA, 3600 );
 		}, 
 		
 		sub {
@@ -392,7 +325,7 @@ sub requestString {
 		"GET $path HTTP/1.1",
 		"Accept: */*",
 		#"Cache-Control: no-cache",
-		"User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64; rv:33.0) Gecko/20100101 Firefox/33.0" , 
+		"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0" , 
 		#"Icy-MetaData: $want_icy",
 		"Connection: close",
 		"Host: $host",

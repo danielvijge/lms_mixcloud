@@ -108,14 +108,27 @@ sub _makeMetadata {
 		cover => $icon,
 		on_select => 'play',
 	};
+
+	# Already set meta cache here, so that playlist does not have to
+	# query each track individually
+	my $cache = Slim::Utils::Cache->new;
+	$log->debug("setting ". 'mixcloud_meta_' . $DATA->{'play'});
+	$cache->set( 'mixcloud_meta_' . $DATA->{'play'}, $DATA, 3600 );
+
 	return $DATA;
 }
 
 sub _fetchMeta {
 	my ($client, $callback, $args, $passDict) = @_;
+
+	my $cache = Slim::Utils::Cache->new;
+	$log->debug("getting ". 'mixcloud_meta_mixcloud:/' . $passDict->{"key"});
+    my $meta = $cache->get( 'mixcloud_meta_mixcloud:/' . $passDict->{"key"} );
+
+	return $meta if $meta;
 	
 	my $fetchURL = "http://api.mixcloud.com" . $passDict->{"key"} ;
-	$log->info("fetching meta for $fetchURL");
+	$log->info("Fetching meta data for $fetchURL");
 	Slim::Networking::SimpleAsyncHTTP->new(
 		
 		sub {
@@ -123,7 +136,7 @@ sub _fetchMeta {
 			if ($@) {
 				$log->warn($@);
 			}				
-			$log->debug("got meta for $fetchURL");
+			$log->debug("Got meta data for $fetchURL");
 			my $meta ={name => "hallo"};# _makeMetadata($track);
 			#$meta->{'name'} = "hallo";
 			#%meta{"items"} = [_makeMetadata($track)];
@@ -131,7 +144,7 @@ sub _fetchMeta {
 		}, 
 		
 		sub {
-			$log->warn("error fetching track data: $_[1]");
+			$log->warn("Error: Cannot fetch track data for $_[1]");
 		},
 		
 		{ timeout => 35 },
@@ -228,7 +241,7 @@ sub tracksHandler {
 		
 		my $queryUrl = "$method://api.mixcloud.com/$resource?offset=$i&limit=$quantity&" . $params;
 		#$queryUrl= "http://192.168.56.1/json/cloudcasts.json";
-		$log->info("fetching: $queryUrl");
+		$log->info("Fetching $queryUrl");
 		
 		Slim::Networking::SimpleAsyncHTTP->new(
 			
