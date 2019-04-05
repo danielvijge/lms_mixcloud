@@ -240,11 +240,18 @@ sub canDirectStreamSong{
 		}
 	}
 	my $ret = $song->streamUrl();
+
+	# Dirty fix by sti	
+	$ret =~ s/https/http/g;
+
 	my ($server, $port, $path, $user, $password) = Slim::Utils::Misc::crackURL($ret);
 	my $host = $port == 80 ? $server : "$server:$port";
 	#$song->currentTrack()->url = $ret;
 	#return 0;
-	return "mixcloudd://$host:$port$path";
+	
+	# Dirty fix by sti	
+	return "mixcloudd://$host$path";
+	#return "mixcloudd://$host:$port$path";
 }
 # If an audio stream fails, keep playing
 sub handleDirectError {
