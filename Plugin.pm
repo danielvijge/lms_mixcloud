@@ -306,7 +306,7 @@ sub urlHandler {
 	$url =~ s/ com/.com/;
 	$url =~ s/www /www./;
 	$url =~ s/http:\/\/ /https:\/\//;
-	my ($trackhome) = $url =~ m{^https://www.mixcloud.com/(.*)$};
+	my ($subdomain, $trackhome) = $url =~ m{^https://(www|m).mixcloud.com/(.*)$};
 	my $queryUrl = "http://api.mixcloud.com/" . $trackhome ;
 
 	$log->debug("fetching $queryUrl");
