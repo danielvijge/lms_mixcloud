@@ -239,7 +239,7 @@ sub tracksHandler {
 			}		
 		}
 		
-		my $queryUrl = "$method://api.mixcloud.com/$resource?offset=$i&limit=$quantity&" . $params;
+		my $queryUrl = "$method://api.mixcloud.com/$resource/?offset=$i&limit=$quantity&" . $params;
 		#$queryUrl= "http://192.168.56.1/json/cloudcasts.json";
 		$log->info("Fetching $queryUrl");
 		
