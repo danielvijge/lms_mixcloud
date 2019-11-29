@@ -104,11 +104,19 @@ sub getTrackUrl{
 		my $content = $response->decoded_content;
 		#$log->debug($content);
 		my @regex = ( $content =~ m/\"(https?:\/\/stream[\s\S]+?)\"/is );
-		$log->debug("Mixcloud URL from downloader: " . $regex[0] );
-		if ( $regex[0] eq '' ) {
+		
+		if ( scalar(@regex) == 0 or $regex[0] eq '' ) {
+			# Did not match ... so try different URL syntax (seen November 2019)
+			@regex = ( $content =~ m/\"(https?:\/\/www\.mixcloud-downloader\.com\/d\/mixcloud\/[\s\S]+?)\"/is );
+		}
+		
+		if ( scalar(@regex) == 0 or $regex[0] eq '' ) {
 			$log->error('Error: Cannot get play URL for '.$trackhome.' from '.$url);
 			return;
 		}
+		
+		$log->debug("Mixcloud URL from downloader: " . $regex[0] );
+
 		$trackurl = $regex[0];
 	}
 
