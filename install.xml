@@ -3,7 +3,7 @@
 <extension>
 	<name>PLUGIN_MIXCLOUD</name>
 	<module>Plugins::MixCloud::Plugin</module>
-	<version>0.1.8</version>
+	<version>0.2.0</version>
 	<description>PLUGIN_MIXCLOUD_DESC</description>
 	<icon>plugins/MixCloud/html/images/icon.png</icon>
 	<defaultState>enabled</defaultState>

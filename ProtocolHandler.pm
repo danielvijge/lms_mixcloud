@@ -98,18 +98,19 @@ sub getTrackUrl{
 	if ($trackurl eq "") {
 		my $ua = LWP::UserAgent->new;
 		$ua->agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0");
-		my $url = "http://www.mixcloud-downloader.com/".$trackhome;
+		my $url = "https://www.dlmixcloud.com/ajax.php";
+		my $mixcloud_url = "https://www.mixcloud.com/".$trackhome;
 		$log->debug("Fetching for downloader ".$url);
-		my $response = $ua->get($url);
+		my $response = $ua->post($url, ["url" => $mixcloud_url]);
 		my $content = $response->decoded_content;
-		#$log->debug($content);
-		my @regex = ( $content =~ m/\"(https?:\/\/stream[\s\S]+?)\"/is );
-		$log->debug("Mixcloud URL from downloader: " . $regex[0] );
-		if ( $regex[0] eq '' ) {
+		$log->debug($content);
+		my $json = eval { from_json($content) };
+		$trackurl = $json->{"url"};
+		$log->debug("Mixcloud URL from downloader: " . $trackurl );
+		if ( $trackurl eq '' ) {
 			$log->error('Error: Cannot get play URL for '.$trackhome.' from '.$url);
 			return;
 		}
-		$trackurl = $regex[0];
 	}
 
 	my $format = "mp4";
