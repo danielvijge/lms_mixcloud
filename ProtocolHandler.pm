@@ -26,12 +26,15 @@ use Slim::Utils::Cache;
 use Data::Dumper;
 use Scalar::Util qw(blessed);
 
-my $log   = logger('plugin.mixcloud');
+use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
 
+my $log   = logger('plugin.mixcloud');
 
 use strict;
 Slim::Player::ProtocolHandlers->registerHandler('mixcloud', __PACKAGE__);
 Slim::Player::ProtocolHandlers->registerHandler('mixcloudd' => 'Plugins::MixCloud::ProtocolHandlerDirect');
+Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__)
+    if Slim::Player::ProtocolHandlers->can('registerURLHandler');
 my $prefs = preferences('plugin.mixcloud');
 $prefs->init({ apiKey => "", playformat => "mp4"});
 
@@ -414,6 +417,21 @@ sub getSeekDataByPosition {
 	my $seekdata = $song->seekdata() || {};
 	
 	return {%$seekdata, restartOffset => $bytesReceived};
+}
+
+sub explodePlaylist {
+	my ( $class, $client, $uri, $callback ) = @_;
+
+	if ( $uri =~ PAGE_URL_REGEXP ) {
+		Plugins::MixCloud::Plugin::urlHandler(
+			$client,
+			sub { $callback->([map {$_->{'play'}} @{$_[0]->{'items'}}]) },
+			{'search' => $uri},
+		);
+	}
+	else {
+		$callback->([]);
+	}
 }
 
 1;
