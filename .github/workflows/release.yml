@@ -41,10 +41,16 @@ jobs:
           output_file: install.xml
           strict: true
 
-      - name: Build zip file
+      - name: Build package
         run: |
           zip -r lms_mixcloud-${{ env.VERSION }}.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml
       
+      - name: Save artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: lms_mixcloud-${{ env.VERSION }}.zip
+          path: lms_mixcloud-${{ env.VERSION }}.zip
+
       - name: Calculate SHA
         run: |
           echo "::set-env name=SHA::$(shasum lms_mixcloud-${{ env.VERSION }}.zip | awk '{print $1;}')"
