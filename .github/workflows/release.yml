@@ -1,0 +1,107 @@
+
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '**'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set version number (release build)
+        if: contains(github.ref, 'refs/tags/')
+        run: |
+          echo "::set-env name=VERSION::`echo ${GITHUB_REF##*/}`"
+          echo "::set-env name=RELEASE_CHANNEL::release"
+          echo "::set-env name=FOLDER::."
+
+      - name: Set version number (development build)
+        if: "!contains(github.ref, 'refs/tags/')"
+        run: |
+          echo "::set-env name=VERSION::`git describe --tags`"
+          echo "::set-env name=RELEASE_CHANNEL::dev"
+          echo "::set-env name=FOLDER::dev-builds"
+
+      - name: Create install XML file
+        uses: cuchi/jinja2-action@v1.2.0
+        with:
+          template: install.template.xml
+          output_file: install.xml
+          strict: true
+
+      - name: Build zip file
+        run: |
+          zip -r lms_mixcloud-${{ env.VERSION }}.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml
+      
+      - name: Calculate SHA
+        run: |
+          echo "::set-env name=SHA::$(shasum lms_mixcloud-${{ env.VERSION }}.zip | awk '{print $1;}')"
+
+      - name: Create dev channel public XML file
+        uses: cuchi/jinja2-action@v1.2.0
+        with:
+          template: public.template.xml
+          output_file: public-dev.xml
+          strict: true
+
+      - name: Create release public XML file
+        if: env.RELEASE_CHANNEL == 'release'
+        uses: cuchi/jinja2-action@v1.2.0
+        with:
+          template: public.template.xml
+          output_file: public.xml
+          strict: true
+
+      - name: Switch branch, setup git for push
+        run: |
+          mv public*.xml /tmp
+          mv lms_mixcloud-${{ env.VERSION }}.zip /tmp
+          git checkout gh-pages
+          cp /tmp/lms_mixcloud-${{ env.VERSION }}.zip ${{ env.FOLDER }}/
+          cp /tmp/public*.xml .
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add ${{ env.FOLDER }}/lms_mixcloud-${{ env.VERSION }}.zip
+          git commit -m "Github Actions release ${{ env.VERSION }}" -a
+
+      - name: Push changes to gh-pages
+        uses: ad-m/github-push-action@master
+        with:
+          branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release
+        if: env.RELEASE_CHANNEL == 'release'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        if: env.RELEASE_CHANNEL == 'release'
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: lms_mixcloud-${{ env.VERSION }}.zip
+          asset_name: lms_mixcloud-${{ env.VERSION }}.zip
+          asset_content_type: application/zip

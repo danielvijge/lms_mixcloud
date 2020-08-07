@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<extension>
+  <name>PLUGIN_MIXCLOUD</name>
+  <module>Plugins::MixCloud::Plugin</module>
+  <version>{{ env['VERSION'] }}</version>
+  <description>PLUGIN_MIXCLOUD_DESC</description>
+  <icon>plugins/MixCloud/html/images/icon.png</icon>
+  <defaultState>enabled</defaultState>
+  <targetApplication>
+    <id>SlimServer</id>
+    <minVersion>7.6</minVersion>
+    <maxVersion>*</maxVersion>
+  </targetApplication>
+    <optionsURL>plugins/MixCloud/settings/basic.html</optionsURL>
+    <creator>Christian Mueller, Daniel Vijge</creator>
+    <email>spam+squeezebox@vijge.net</email>
+</extension>
