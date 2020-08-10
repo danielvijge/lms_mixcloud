@@ -430,7 +430,7 @@ sub explodePlaylist {
 		);
 	}
 	else {
-		$callback->([]);
+		$callback->([$uri]);
 	}
 }
 
