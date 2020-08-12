@@ -34,6 +34,11 @@ jobs:
           echo "::set-env name=RELEASE_CHANNEL::dev"
           echo "::set-env name=FOLDER::dev-builds"
 
+      - name: Test if release number matches x.y
+        if: env.RELEASE_CHANNEL == 'release'
+        run: |
+          ! [[ ${{ env.VERSION }} =~ ^[0-9]+.[0-9]+$ ]] && echo "Release tag must be in the form of x.y." && exit 1 || echo "Release tag format is correct"
+
       - name: Create install XML file
         uses: cuchi/jinja2-action@v1.2.0
         with:
