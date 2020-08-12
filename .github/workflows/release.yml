@@ -23,7 +23,7 @@ jobs:
       - name: Set version number (release build)
         if: contains(github.ref, 'refs/tags/')
         run: |
-          echo "::set-env name=VERSION::`echo ${GITHUB_REF##*/}`.0"
+          echo "::set-env name=VERSION::`echo ${GITHUB_REF##*/}`"
           echo "::set-env name=RELEASE_CHANNEL::release"
           echo "::set-env name=FOLDER::."
 
