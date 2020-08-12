@@ -191,15 +191,6 @@ sub tracksHandler {
 		my $method = "http";
 		my $uid = $passDict->{'uid'} || '';
 		my $resource = "";
-		if ($searchType eq 'hot') {
-			$resource = "popular/hot";
-		}
-		if ($searchType eq 'popular') {
-			$resource = "popular";
-		}
-		if ($searchType eq 'new') {
-			$resource = "new";
-		}
 		if ($searchType eq 'categories') {
 			if ($params eq "") {
 				$resource = "categories";
@@ -476,14 +467,6 @@ sub toplevel {
 	my ($client, $callback, $args) = @_;
 
 	my $callbacks = [
-		{ name => string('PLUGIN_MIXCLOUD_HOT'), type => 'link',   
-			url  => \&tracksHandler, passthrough => [ {type=>'hot' } ], },
-
-		{ name => string('PLUGIN_MIXCLOUD_NEW'), type => 'link',   
-			url  => \&tracksHandler, passthrough => [ {type=>'new' } ], },
-		
-		{ name => string('PLUGIN_MIXCLOUD_POPULAR'), type => 'link',   
-			url  => \&tracksHandler, passthrough => [ {type=>'popular' } ], },
 		
 		{ name => string('PLUGIN_MIXCLOUD_CATEGORIES'), type => 'link',   
 			url  => \&tracksHandler, passthrough => [ {type=>'categories',parser => \&_parseCategories } ], },
