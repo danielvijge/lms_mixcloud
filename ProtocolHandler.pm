@@ -9,7 +9,7 @@ package Plugins::MixCloud::ProtocolHandler;
 
 use strict;
 
-use base qw(Slim::Formats::RemoteStream);
+use base qw(Slim::Player::Protocols::HTTPS);
 use List::Util qw(min max);
 use LWP::Simple;
 use LWP::UserAgent;
@@ -29,13 +29,10 @@ use Scalar::Util qw(blessed);
 use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
 
 my $log   = logger('plugin.mixcloud');
-
-use strict;
-Slim::Player::ProtocolHandlers->registerHandler('mixcloud', __PACKAGE__);
-Slim::Player::ProtocolHandlers->registerHandler('mixcloudd' => 'Plugins::MixCloud::ProtocolHandlerDirect');
-Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__)
-    if Slim::Player::ProtocolHandlers->can('registerURLHandler');
 my $prefs = preferences('plugin.mixcloud');
+
+Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__);
+
 $prefs->init({ apiKey => "", playformat => "mp4"});
 
 sub new {
@@ -59,18 +56,21 @@ sub new {
 sub isPlaylistURL { 0 }
 sub isRemote { 1 }
 
+=comment
+This plugin should be able to do direct streaming when the player accepts mp3/mp4 but the issue is 
+that it requires a special user-agent to be set. The logical solution is to overload the requestString
+method but it only works when using proxied streaming because Squeezebox.pm does call the protocol 
+handler requestString method instead of the song's protocol handler method. I think this is incorrect 
+but the result is that in direct streaming, there is no protocol handler created so the requestString
+called is the base class of this package with fails as the player's request uses the wrong UA
+=cut
+sub canDirectStream { 0 };
+
 sub getFormatForURL {
 	my ($class, $url) = @_;		
 	my $trackinfo = getTrackUrl($url);
 	return $trackinfo->{'format'};	
 }
-
-#sub formatOverride {
-#	my ($class, $song) = @_;
-#	my $url = $song->currentTrack()->url;
-#	$log->debug("-----------------------------------------------------Format Override Songurl: ".$song->_streamFormat()."-----".$url);
-#	return $song->_streamFormat();
-#}
 
 sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
@@ -82,7 +82,29 @@ sub getNextTrack {
 	$song->bitrate($trackinfo->{'bitrate'});
 	$song->_streamFormat($trackinfo->{'format'});
 	$song->streamUrl($trackinfo->{'url'});
-	$successCb->();
+	
+	if ($trackinfo->{'format'} =~ /mp4|aac/i) {
+		my $http = Slim::Networking::Async::HTTP->new;
+		$http->send_request( {
+			request     => HTTP::Request->new( GET => $trackinfo->{'url'}, [ 'User-Agent' => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0" ] ),
+			onStream    => \&Slim::Utils::Scanner::Remote::parseMp4Header,
+			onError     => sub {
+				my ($self, $error) = @_;
+				$log->warn( "could not find $trackinfo->{'url'} header with format $trackinfo->{'format'} $error" );
+				$successCb->();
+			},
+			passthrough => [ $song->track, { cb => sub {
+			                                    my $cache = Slim::Utils::Cache->new;
+			                                    my $meta = $cache->get('mixcloud_meta_' . $song->track->url);
+			                                    $meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $song->track->bitrate/1000);
+			                                    $cache->set( 'mixcloud_meta_' . $song->track->url, $meta, 86400 );
+			                                    $successCb->(); 
+											} },						  
+			                 $trackinfo->{'url'} ],
+		} );
+	} else {
+		$successCb->();
+	}
 }
 
 sub getTrackUrl{
@@ -219,52 +241,15 @@ sub trackInfoURL {
 	$log->debug("trackInfoURL: " . $url);
 	return undef;
 }
-
-sub canDirectStreamSong{
-	my ($classOrSelf, $client, $song, $inType) = @_;
-	
-	# When synced, we don't direct stream so that the server can proxy a single
-	# stream for all players
-	if ( $client->isSynced(1) ) {
-
-		if ( main::INFOLOG && $log->is_info ) {
-			$log->info(sprintf(
-				"[%s] Not direct streaming because player is synced", $client->id
-			));
-		}
-
-		return 0;
-	}
-
-	# Allow user pref to select the method for streaming
-	if ( my $method = $prefs->client($client)->get('mp3StreamingMethod') ) {
-		if ( $method == 1 ) {
-			main::DEBUGLOG && $log->debug("Not direct streaming because of mp3StreamingMethod pref");
-			return 0;
-		}
-	}
-	my $ret = $song->streamUrl();
-
-	# Dirty fix by sti	
-	$ret =~ s/https/http/g;
-
-	my ($server, $port, $path, $user, $password) = Slim::Utils::Misc::crackURL($ret);
-	my $host = $port == 80 ? $server : "$server:$port";
-	#$song->currentTrack()->url = $ret;
-	#return 0;
-	
-	# Dirty fix by sti	
-	return "mixcloudd://$host$path";
-	#return "mixcloudd://$host:$port$path";
-}
 # If an audio stream fails, keep playing
 sub handleDirectError {
 	my ( $class, $client, $url, $response, $status_line ) = @_;
 
 	main::INFOLOG && $log->info("Direct stream failed: $url [$response] $status_line");
 
-	$client->controller()->playerStreamingFailed( $client, 'PLUGIN_SQUEEZECLOUD_STREAM_FAILED' );
+	$client->controller()->playerStreamingFailed( $client, 'PLUGIN_MIXCLOUD_STREAM_FAILED' );
 }
+
 sub getIcon {
 	my ( $class, $url, $noFallback ) = @_;
 
@@ -276,149 +261,18 @@ sub getIcon {
 
 	return $noFallback ? '' : 'html/images/radio.png';
 }
-sub parseDirectHeaders {
-	my ($class, $client, $url, @headers) = @_;
-	my ($redir, $contentType, $length,$bitrate);
-	foreach my $header (@headers) {
-	
-		# Tidy up header to make no stray nulls or \n have been left by caller.
-		$header =~ s/[\0]*$//;
-		$header =~ s/\r/\n/g;
-		$header =~ s/\n\n/\n/g;
 
-		$log->debug("header-ds: $header");
-	
-		if ($header =~ /^Location:\s*(.*)/i) {
-			$redir = $1;
-		}
-		
-		elsif ($header =~ /^Content-Type:\s*(.*)/i) {
-			$contentType = $1;
-		}
-		
-		elsif ($header =~ /^Content-Length:\s*(.*)/i) {
-			$length = $1;
-		}
-	}
-	
-	$contentType = Slim::Music::Info::mimeToType($contentType);
-	$log->debug("DIRECT HEADER: ".$contentType);
-	if ( !$contentType ) {
-		$contentType = 'mp3';
-	}elsif($contentType eq 'mp4'){
-		$contentType = 'aac';	
-	}
-	$bitrate = $contentType eq "mp3"?320000:70000;
-	return (undef, $bitrate, undef, undef, $contentType,$length);
-}
-sub parseHeaders {
-	my ($class, $client, $url, @headers) = @_;
-	my ($title, $bitrate, $metaint, $redir, $contentType, $length, $body) = $class->parseDirectHeaders($client, $url, @_);
-	return (undef, undef, undef, undef, $contentType);
-}
-
+# Tweak user-agent for mixcloud to accept our request
 sub requestString {
-	my $self   = shift;
-	my $client = shift;
-	my $url    = shift;
-	my $post   = shift;
-	my $seekdata = shift;
+	my $self = shift;
+	my $request = $self->SUPER::requestString(@_);
+	my $ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0";
 
-	my ($server, $port, $path, $user, $password) = Slim::Utils::Misc::crackURL($url);
+	$request =~ s/(User-Agent:)\s*.*/\1: $ua/;
+	$request =~ s/Icy-MetaData:.+$CRLF//m;
 
-	# Although the port can be part of the Host: header, some hosts (such
-	# as online.wsj.com don't like it, and will infinitely redirect.
-	# According to the spec, http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
-	# The port is optional if it's 80, so follow that rule.
-	my $host = $port == 80 ? $server : "$server:$port";
-	# make the request
-	my $request = join($CRLF, (
-		"GET $path HTTP/1.1",
-		"Accept: */*",
-		#"Cache-Control: no-cache",
-		"User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0" , 
-		#"Icy-MetaData: $want_icy",
-		"Connection: close",
-		"Host: $host",
-	));
-	
-	# If seeking, add Range header
-	if ($client && $seekdata) {
-		$request .= $CRLF . 'Range: bytes=' . int( $seekdata->{sourceStreamOffset} +  $seekdata->{restartOffset}) . '-';
-		
-		if (defined $seekdata->{timeOffset}) {
-			# Fix progress bar
-			$client->playingSong()->startOffset($seekdata->{timeOffset});
-			$client->master()->remoteStreamStartTime( Time::HiRes::time() - $seekdata->{timeOffset} );
-		}
-
-		$client->songBytes(int( $seekdata->{sourceStreamOffset} ));
-	}
-	$request .= $CRLF . $CRLF;		
-	$log->debug($request);
 	return $request;
 }
-
-sub canSeek {
-	my ( $class, $client, $song ) = @_;
-
-	my $url = $song->currentTrack()->url;
-	my $ct = Slim::Music::Info::contentType($url);
-
-	if ( $ct eq 'mp3') {
-		return 1;
-	}
-	else {
-		return 0;
-	}
-}
-
-sub canSeekError {
-	my ( $class, $client, $song ) = @_;
-	
-	my $url = $song->currentTrack()->url;
-	
-	my $ct = Slim::Music::Info::contentType($url);
-	
-	if ( $ct ne 'mp3' ) {
-		return ( 'SEEK_ERROR_TYPE_NOT_SUPPORTED', $ct );
-	} 
-	
-	if ( !$song->bitrate() ) {
-		main::INFOLOG && $log->info("bitrate unknown for: " . $url);
-		return 'SEEK_ERROR_MP3_UNKNOWN_BITRATE';
-	}
-	elsif ( !$song->duration() ) {
-		return 'SEEK_ERROR_MP3_UNKNOWN_DURATION';
-	}
-	
-	return 'SEEK_ERROR_MP3';
-}
-
-sub getSeekData {
-	my ( $class, $client, $song, $newtime ) = @_;
-	
-	# Determine byte offset and song length in bytes
-	my $bitrate = $song->bitrate() || return;
-		
-	$bitrate /= 1000;
-		
-	main::INFOLOG && $log->info( "Trying to seek $newtime seconds into $bitrate kbps" );
-	
-	return {
-		sourceStreamOffset   => (( $bitrate * 1000 ) / 8 ) * $newtime,
-		timeOffset           => $newtime,
-	};
-}
-
-sub getSeekDataByPosition {
-	my ($class, $client, $song, $bytesReceived) = @_;
-	
-	my $seekdata = $song->seekdata() || {};
-	
-	return {%$seekdata, restartOffset => $bytesReceived};
-}
-
 sub explodePlaylist {
 	my ( $class, $client, $uri, $callback ) = @_;
 
