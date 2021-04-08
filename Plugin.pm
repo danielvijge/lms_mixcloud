@@ -7,23 +7,22 @@ package Plugins::MixCloud::Plugin;
 # See file LICENSE for full license details
 
 use strict;
-use utf8;
 
+use base qw(Slim::Plugin::OPMLBased);
+use utf8;
 use vars qw(@ISA);
 
 use URI::Escape;
 use JSON::XS::VersionOneAndTwo;
-use LWP::Simple;
-use LWP::UserAgent;
+
 use File::Spec::Functions qw(:ALL);
 use List::Util qw(min max);
+use Date::Parse;
 
 use Slim::Utils::Strings qw(string);
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
-use Date::Parse;
-
-use Data::Dumper;
+use Slim::Plugin::OPMLBased;
 
 use Plugins::MixCloud::ProtocolHandler;
 
@@ -39,17 +38,6 @@ BEGIN {
 		'defaultLevel' => 'WARN',
 		'description'  => string('PLUGIN_MIXCLOUD'),
 	});   
-
-	if (exists &Slim::Control::XMLBrowser::findAction) {
-		$log->info("using server XMLBrowser");
-		require Slim::Plugin::OPMLBased;
-		push @ISA, 'Slim::Plugin::OPMLBased';
-	} else {
-		$log->info("using packaged XMLBrowser: Slim76Compat");
-		require Slim76Compat::Plugin::OPMLBased;
-		push @ISA, 'Slim76Compat::Plugin::OPMLBased';
-		$compat = 1;
-	}
 }
 
 my $prefs = preferences('plugin.mixcloud');
@@ -297,8 +285,9 @@ sub urlHandler {
 	$url =~ s/ com/.com/;
 	$url =~ s/www /www./;
 	$url =~ s/http:\/\/ /https:\/\//;
-	my ($subdomain, $trackhome) = $url =~ m{^https://(www|m).mixcloud.com/(.*)$};
+	my ($trackhome) = $url =~ m{^https://(?:www|m).mixcloud.com/(.*)$};
 	my $queryUrl = "http://api.mixcloud.com/" . $trackhome ;
+	return unless $trackhome;
 
 	$log->debug("fetching $queryUrl");
 

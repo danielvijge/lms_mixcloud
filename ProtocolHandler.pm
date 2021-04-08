@@ -54,7 +54,6 @@ sub new {
 	return $self;
 }
 sub isPlaylistURL { 0 }
-sub isRemote { 1 }
 
 =comment
 This plugin should be able to do direct streaming when the player accepts mp3/mp4 but the issue is 
@@ -109,8 +108,10 @@ sub getNextTrack {
 
 sub getTrackUrl{
 	my $url = shift;
-	my ($trackhome) = $url =~ m{^mixcloud://(.*)$};
-	$log->debug("Fetching Trackhome: ".$trackhome);	
+	my ($trackhome) = $url =~ m{^(?:mixcloud)://(.*)$};
+	$log->debug("Fetching Trackhome: $trackhome for $url");	
+	return unless $trackhome;
+	
 	my $cache = Slim::Utils::Cache->new;
 	my $trackurl = "";
 	my $format = $prefs->get('playformat');
@@ -124,16 +125,16 @@ sub getTrackUrl{
 		my $ua = LWP::UserAgent->new;
 		$ua->agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0");
 		my $url = "https://www.dlmixcloud.com/ajax.php";
-		my $mixcloud_url = "https://www.mixcloud.com/".$trackhome;
-		$log->debug("Fetching for downloader ".$url);
+		my $mixcloud_url = "https://www.mixcloud.com/$trackhome";
+		$log->debug("Fetching for downloader $url");
 		my $response = $ua->post($url, ["url" => $mixcloud_url]);
 		my $content = $response->decoded_content;
 		$log->debug($content);
 		my $json = eval { from_json($content) };
 		$trackurl = $json->{"url"};
-		$log->debug("Mixcloud URL from downloader: " . $trackurl );
+		$log->debug("Mixcloud URL from downloader: $trackurl");
 		if ( $trackurl eq '' ) {
-			$log->error('Error: Cannot get play URL for '.$trackhome.' from '.$url);
+			$log->error("Error: Cannot get play URL for $trackhome from $url");
 			return;
 		}
 	}
@@ -261,7 +262,6 @@ sub getIcon {
 
 	return $noFallback ? '' : 'html/images/radio.png';
 }
-
 # Tweak user-agent for mixcloud to accept our request
 sub requestString {
 	my $self = shift;
