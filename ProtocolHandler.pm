@@ -23,7 +23,6 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Errno;
 use Slim::Utils::Cache;
-use Data::Dumper;
 use Scalar::Util qw(blessed);
 
 use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
