@@ -9,7 +9,17 @@ package Plugins::MixCloud::ProtocolHandler;
 
 use strict;
 
-use base qw(Slim::Player::Protocols::HTTPS);
+use vars qw(@ISA);
+
+BEGIN {
+	if (eval { require Slim::Player::Protocols::Buffered }) {
+		push @ISA, qw(Slim::Player::Protocols::Buffered);
+	} else {
+		require Plugins::MixCloud::Buffered;
+		push @ISA, qw(Plugins::MixCloud::Buffered);
+	}	
+}
+
 use List::Util qw(min max);
 use LWP::Simple;
 use LWP::UserAgent;
@@ -43,25 +53,19 @@ sub new {
 	my $streamUrl = $song->streamUrl() || return;
 	my $track     = $song->pluginData();
 	$log->info( 'Remote streaming Mixcloud track: ' . $streamUrl );
-	
-	my $self = $class->open({
+
+	my $self = $class->SUPER::new({
 		url => $streamUrl,
 		song    => $song,
 		client  => $client,
 	});
-
+	
 	return $self;
 }
+
 sub isPlaylistURL { 0 }
 
-=comment
-This plugin should be able to do direct streaming when the player accepts mp3/mp4 but the issue is 
-that it requires a special user-agent to be set. The logical solution is to overload the requestString
-method but it only works when using proxied streaming because Squeezebox.pm does call the protocol 
-handler requestString method instead of the song's protocol handler method. I think this is incorrect 
-but the result is that in direct streaming, there is no protocol handler created so the requestString
-called is the base class of this package with fails as the player's request uses the wrong UA
-=cut
+# we only used proxied streaming because we need to download the file
 sub canDirectStream { 0 };
 
 sub getFormatForURL {
