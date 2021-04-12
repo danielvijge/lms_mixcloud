@@ -17,15 +17,16 @@ sub new {
 	my $self = $class->SUPER::new(@_);
 
 	# HTTP headers have now been acquired in a blocking way by the above, we can 
-	# now do fast download of body to a file from which we'll read further data
-	if (Slim::Utils::Misc->can('getTempDir') { 
+	# now enable fast download of body to a file from which we'll read further data
+	# but the switch of socket handler can only be done within _sysread otherwise
+	# we will timeout when there is a pipeline with a callback 
+	if (Slim::Utils::Misc->can('getTempDir')) { 
 		${*$self}{'_fh'} = File::Temp->new( DIR => Slim::Utils::Misc::getTempDir );
-	} else 
+	} else {
 		${*$self}{'_fh'} = File::Temp->new;
 	}
 	open ${*$self}{'_rfh'}, '<', ${*$self}{'_fh'}->filename;
 	binmode(${*$self}{'_rfh'});
-	Slim::Networking::Select::addRead($self, \&saveStream);	
 	
 	return $self;
 }
@@ -48,21 +49,28 @@ sub _sysread {
 	my $self  = $_[0];
 	my $rfh = ${*$self}{'_rfh'};
 	
+	# we are not ready to read body yet, read socket directly
 	return $self->SUPER::_sysread($_[1], $_[2], $_[3]) unless $rfh;
+
+	# try to read from buffer file, first *always* reset read pointer
+	$rfh->seek(0, 1);						
 	my $readLength = read($rfh, $_[1], $_[2], $_[3]);
-
 	return $readLength if $readLength;
-
+	
 	# assume that close() will be called for cleanup
 	return 0 if ${*$self}{_done};
 	
-	# we should not be here because $fh should always be ahead of streaming. It only happens 
-	# if download is slow and/or player has a very large buffer. As nextChunk will remove us
-	# from the read loop, we need to re-insert ourselves(reset eof as well).
-	Slim::Utils::Timers::setTimer($self, time(), sub { Slim::Networking::Select::addRead(shift, \&saveStream) });
-	$rfh->seek(0, 2);
-	
-	$! = EINTR if main::ISWINDOWS;
+	# empty file but not done yet, try to read directly
+	$readLength = $self->SUPER::_sysread($_[1], $_[2], $_[3]);
+
+	# if we now have data pending, likely we have been removed from the reading loop
+	# so we have to re-insert ourselves (no need to store fresh data in buffer)
+	if ($readLength) {
+		Slim::Networking::Select::addRead($self, \&saveStream);
+		return $readLength;
+	}
+		
+	$! = EINTR;
 	return undef;
 }
 
