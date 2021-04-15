@@ -117,11 +117,13 @@ sub getNextTrack {
 			$song->streamUrl($meta->{'url'});
 			$song->bitrate($meta->{'bitrate'} * 1000);			
 	
-			if ($meta->{'format'} =~ /mp4|aac/i) {
+			if ($meta->{'format'} =~ /mp3|mp4|aac/i) {
 				my $http = Slim::Networking::Async::HTTP->new;
 				$http->send_request( {
 					request     => HTTP::Request->new( GET => $meta->{'url'}, [ 'User-Agent' => USER_AGENT ] ),
-					onStream    => \&Slim::Utils::Scanner::Remote::parseMp4Header,
+					onStream    => $meta->{format} eq 'mp3' 
+					               ? \&Slim::Utils::Scanner::Remote::parseAudioStream
+								   : \&Slim::Utils::Scanner::Remote::parseMp4Header,
 					onError     => sub {
 						my ($self, $error) = @_;
 						$log->error( "could not find $meta->{'url'} header with format $meta->{'format'} $error" );
