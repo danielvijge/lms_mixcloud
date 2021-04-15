@@ -10,7 +10,6 @@ use strict;
 
 use base qw(Slim::Plugin::OPMLBased);
 use utf8;
-use vars qw(@ISA);
 
 use URI::Escape;
 use JSON::XS::VersionOneAndTwo;
@@ -26,21 +25,12 @@ use Slim::Plugin::OPMLBased;
 
 use Plugins::MixCloud::ProtocolHandler;
 
-my $log;
-my $compat;
 my $CLIENT_ID = "2aB9WjPEAButp4HSxY";
 my $CLIENT_SECRET = "scDXfRbbTyDHHGgDhhSccHpNgYUa7QAW";
 my $token = "";
 
-BEGIN {
-	$log = Slim::Utils::Log->addLogCategory({
-		'category'     => 'plugin.mixcloud',
-		'defaultLevel' => 'WARN',
-		'description'  => string('PLUGIN_MIXCLOUD'),
-	});   
-}
-
 my $prefs = preferences('plugin.mixcloud');
+my $log = logger('plugin.mixcloud');
 
 $prefs->init({ apiKey => "", playformat => "mp4" });
 
@@ -69,82 +59,16 @@ sub getToken {
 	}
 }
 
-sub _makeMetadata {
-	my ($json) = shift;
-
-	my $icon = "";
-	if (defined $json->{'pictures'}->{'large'}) {
-		$icon = $json->{'pictures'}->{'large'};
-	}else{
-		if (defined $json->{'pictures'}->{'medium'}) {
-			$icon = $json->{'pictures'}->{'medium'};
-		}
-	}
-
-	my $DATA = {
-		duration => $json->{'audio_length'},
-		name => $json->{'name'},
-		title => $json->{'name'},
-		artist => $json->{'user'}->{'username'},
-		album => " ",
-		play => "mixcloud:/" . $json->{'key'},
-		bitrate => '320kbps/70kbps',
-		type => 'MP3/MP4 (Mixcloud)',
-		passthrough => [ { key => $json->{'key'}} ],
-		icon => $icon,
-		image => $icon,
-		cover => $icon,
-		on_select => 'play',
-	};
-
-	# Already set meta cache here, so that playlist does not have to
-	# query each track individually
-	my $cache = Slim::Utils::Cache->new;
-	$log->debug("setting ". 'mixcloud_meta_' . $DATA->{'play'});
-	$cache->set( 'mixcloud_meta_' . $DATA->{'play'}, $DATA, 3600 );
-
-	return $DATA;
-}
-
-sub _fetchMeta {
-	my ($client, $callback, $args, $passDict) = @_;
-
-	my $cache = Slim::Utils::Cache->new;
-	$log->debug("getting ". 'mixcloud_meta_mixcloud:/' . $passDict->{"key"});
-    my $meta = $cache->get( 'mixcloud_meta_mixcloud:/' . $passDict->{"key"} );
-
-	return $meta if $meta;
-	
-	my $fetchURL = "http://api.mixcloud.com" . $passDict->{"key"} ;
-	$log->info("Fetching meta data for $fetchURL");
-	Slim::Networking::SimpleAsyncHTTP->new(
-		
-		sub {
-			my $track = eval { from_json($_[0]->content) };			
-			if ($@) {
-				$log->warn($@);
-			}				
-			$log->debug("Got meta data for $fetchURL");
-			my $meta ={name => "hallo"};# _makeMetadata($track);
-			#$meta->{'name'} = "hallo";
-			#%meta{"items"} = [_makeMetadata($track)];
-			$callback->(_makeMetadata($track));
-		}, 
-		
-		sub {
-			$log->warn("Error: Cannot fetch track data for $_[1]");
-		},
-		
-		{ timeout => 35 },
-		
-	)->get($fetchURL);
+sub _provider {
+	my ($client, $url) = @_;
+	return Plugins::MixCloud::ProtocolHandler::fetchTrackDetail($client, $url);
 }
 
 sub _parseTracks {
 	my ($json, $menu) = @_;
 	my $data = $json->{'data'}; 
 	for my $entry (@$data) {
-		push @$menu, _makeMetadata($entry);
+		push @$menu, Plugins::MixCloud::ProtocolHandler::makeCacheItem($entry);
 	}
 }
 
@@ -219,7 +143,6 @@ sub tracksHandler {
 		}
 		
 		my $queryUrl = "$method://api.mixcloud.com/$resource?offset=$i&limit=$quantity&" . $params;
-		#$queryUrl= "http://192.168.56.1/json/cloudcasts.json";
 		$log->info("Fetching $queryUrl");
 		
 		Slim::Networking::SimpleAsyncHTTP->new(
@@ -285,9 +208,9 @@ sub urlHandler {
 	$url =~ s/ com/.com/;
 	$url =~ s/www /www./;
 	$url =~ s/http:\/\/ /https:\/\//;
-	my ($trackhome) = $url =~ m{^https://(?:www|m).mixcloud.com/(.*)$};
-	my $queryUrl = "http://api.mixcloud.com/" . $trackhome ;
-	return unless $trackhome;
+	my ($id) = $url =~ m{^https://(?:www|m).mixcloud.com/(.*)$};
+	my $queryUrl = "http://api.mixcloud.com/" . $id ;
+	return unless $id;
 
 	$log->debug("fetching $queryUrl");
 
@@ -295,11 +218,9 @@ sub urlHandler {
 		Slim::Networking::SimpleAsyncHTTP->new(
 			sub {
 				my $http = shift;
-				my $json = eval { from_json($http->content) };
-
-				$callback->({
-					items => [ _makeMetadata($json) ]
-				});
+				my $item = eval { from_json($http->content) };
+				$log->warn($@) if $@;
+				$callback->( { items => [ Plugins::MixCloud::ProtocolHandler::makeCacheItem($item) ] } );
 			},
 			sub {
 				$log->error("error: $_[1]");
@@ -436,7 +357,7 @@ sub initPlugin {
 
 	Slim::Formats::RemoteMetadata->registerProvider(
 		match => qr/mixcloud/,
-		func => \&_fetchMeta,
+		func => \&_provider,
 	);
 
 	Slim::Player::ProtocolHandlers->registerHandler(
@@ -476,9 +397,6 @@ sub toplevel {
 				$callback->($searchcallbacks);							
 			}, passthrough => [ { type => 'search' } ], }		
 	];
-
-	
-
 	
 	getToken(
 			 sub{

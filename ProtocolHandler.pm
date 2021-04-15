@@ -21,13 +21,12 @@ BEGIN {
 }
 
 use List::Util qw(min max);
-use LWP::Simple;
-use LWP::UserAgent;
 use HTML::Parser;
 use URI::Escape;
 use JSON::XS::VersionOneAndTwo;
 use XML::Simple;
 use IO::Socket qw(:crlf);
+use Data::Dump qw(dump);
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
@@ -36,13 +35,29 @@ use Slim::Utils::Cache;
 use Scalar::Util qw(blessed);
 
 use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
+use constant USER_AGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0';
 
 my $log   = logger('plugin.mixcloud');
 my $prefs = preferences('plugin.mixcloud');
+my $cache = Slim::Utils::Cache->new;
 
 Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__);
 
 $prefs->init({ apiKey => "", playformat => "mp4"});
+
+sub isPlaylistURL { 0 }
+sub canDirectStream { 0 };
+
+sub scanUrl {
+	my ($class, $url, $args) = @_;
+	$args->{cb}->( $args->{song}->currentTrack() );
+}
+
+sub getFormatForURL {
+	my ($class, $url) = @_;		
+	my $meta = $cache->get('mixcloud_item_' . getId($url));
+	return $meta ? $meta->{'format'} : $prefs->get('playformat');
+}
 
 sub new {
 	my $class  = shift;
@@ -63,174 +78,170 @@ sub new {
 	return $self;
 }
 
-sub isPlaylistURL { 0 }
+# Tweak user-agent for mixcloud to accept our request
+sub requestString {
+	my $self = shift;
+	my $request = $self->SUPER::requestString(@_);
+	my $ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0";
 
-# we only used proxied streaming because we need to download the file
-sub canDirectStream { 0 };
+	$request =~ s/(User-Agent:)\s*.*/\1: $ua/;
+	$request =~ s/Icy-MetaData:.+$CRLF//m;
 
-sub getFormatForURL {
-	my ($class, $url) = @_;		
-	my $trackinfo = getTrackUrl($url);
-	return $trackinfo->{'format'};	
+	return $request;
+}
+
+sub explodePlaylist {
+	my ( $class, $client, $uri, $callback ) = @_;
+
+	if ( $uri =~ PAGE_URL_REGEXP ) {
+		Plugins::MixCloud::Plugin::urlHandler(
+			$client,
+			sub { $callback->([map {$_->{'play'}} @{$_[0]->{'items'}}]) },
+			{'search' => $uri},
+		);
+	}
+	else {
+		$callback->([$uri]);
+	}
 }
 
 sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
-		
-	my $client = $song->master();
-	my $url    = $song->currentTrack()->url;
-	my $trackinfo = getTrackUrl($url);
-	$log->debug("formaturl: ".$trackinfo->{'url'});
-	$song->bitrate($trackinfo->{'bitrate'});
-	$song->_streamFormat($trackinfo->{'format'});
-	$song->streamUrl($trackinfo->{'url'});
+	my $url = $song->currentTrack()->url;
 	
-	if ($trackinfo->{'format'} =~ /mp4|aac/i) {
-		my $http = Slim::Networking::Async::HTTP->new;
-		$http->send_request( {
-			request     => HTTP::Request->new( GET => $trackinfo->{'url'}, [ 'User-Agent' => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0" ] ),
-			onStream    => \&Slim::Utils::Scanner::Remote::parseMp4Header,
-			onError     => sub {
-				my ($self, $error) = @_;
-				$log->warn( "could not find $trackinfo->{'url'} header with format $trackinfo->{'format'} $error" );
+	_fetchTrackExtra($url, sub {
+			my $meta = shift;
+			return $successCb->() unless $meta;
+			
+			$song->_streamFormat($meta->{'format'});
+			$song->streamUrl($meta->{'url'});
+			$song->bitrate($meta->{'bitrate'} * 1000);			
+	
+			if ($meta->{'format'} =~ /mp4|aac/i) {
+				my $http = Slim::Networking::Async::HTTP->new;
+				$http->send_request( {
+					request     => HTTP::Request->new( GET => $meta->{'url'}, [ 'User-Agent' => USER_AGENT ] ),
+					onStream    => \&Slim::Utils::Scanner::Remote::parseMp4Header,
+					onError     => sub {
+						my ($self, $error) = @_;
+						$log->error( "could not find $meta->{'url'} header with format $meta->{'format'} $error" );
+						$successCb->();
+					},
+					passthrough => [ $song->track, 
+					                 { cb => sub {
+			                             $meta->{bitrate} = int($song->track->bitrate/1000) . 'k';
+			                             $cache->set('mixcloud_item_' . getId($url), $meta, 3600);
+			                             $successCb->(); 
+									 } },
+									 $meta->{'url'} ],
+				} );
+			} else {
 				$successCb->();
-			},
-			passthrough => [ $song->track, { cb => sub {
-			                                    my $cache = Slim::Utils::Cache->new;
-			                                    my $meta = $cache->get('mixcloud_meta_' . $song->track->url);
-			                                    $meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $song->track->bitrate/1000);
-			                                    $cache->set( 'mixcloud_meta_' . $song->track->url, $meta, 86400 );
-			                                    $successCb->(); 
-											} },						  
-			                 $trackinfo->{'url'} ],
-		} );
-	} else {
-		$successCb->();
-	}
-}
-
-sub getTrackUrl{
-	my $url = shift;
-	my ($trackhome) = $url =~ m{^(?:mixcloud)://(.*)$};
-	$log->debug("Fetching Trackhome: $trackhome for $url");	
-	return unless $trackhome;
-	
-	my $cache = Slim::Utils::Cache->new;
-	my $trackurl = "";
-	my $format = $prefs->get('playformat');
-	my $meta = $cache->get( 'mixcloud_meta_' . $url );
-	if ( $meta->{'url'} ) {
-		$log->debug("Got play URL from cache, not retrieving again");
-		$trackurl = $meta->{'url'};
-	}
-
-	if ($trackurl eq "") {
-		my $ua = LWP::UserAgent->new;
-		$ua->agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0");
-		my $url = "https://www.dlmixcloud.com/ajax.php";
-		my $mixcloud_url = "https://www.mixcloud.com/$trackhome";
-		$log->debug("Fetching for downloader $url");
-		my $response = $ua->post($url, ["url" => $mixcloud_url]);
-		my $content = $response->decoded_content;
-		$log->debug($content);
-		my $json = eval { from_json($content) };
-		$trackurl = $json->{"url"};
-		$log->debug("Mixcloud URL from downloader: $trackurl");
-		if ( $trackurl eq '' ) {
-			$log->error("Error: Cannot get play URL for $trackhome from $url");
-			return;
+			}
 		}
-	}
+	);
+}
 
-	my $format = "mp4";
-	if (index($trackurl, '.mp3') != -1) {
-		$format = "mp3";
+# complement track details (url, format, bitrate) using dmixcloud
+sub _fetchTrackExtra {
+	my ($url, $cb) = @_;
+	my $id = getId($url);
+	my $meta = $cache->get("mixcloud_item_$id") || {};
+	
+	$log->debug("Getting complement for $url => $id");	
+	
+	# we already have everything
+	if ( $meta->{'url'} ) {
+		$log->debug("Got play URL $meta->{'url'} for $url from cache");
+		$cb->($meta) if $cb;
+		return $meta;
 	}
 	
-	my $trackdata = {url=>$trackurl,format=>$format,bitrate=>$format eq "mp3"?320000:70000};
+	my $mixcloud_url = "https://www.mixcloud.com/$id";
+	my $http = Slim::Networking::Async::HTTP->new;
+	
+	$log->info("Fetching complement with downloader $url $mixcloud_url");
+	
+	$http->send_request( {
+		request => HTTP::Request->new( POST => 'https://www.dlmixcloud.com/ajax.php', 
+		                               [ 'User-Agent' => USER_AGENT, 'Content-Type' => 'application/x-www-form-urlencoded' ], 
+									   "url=$mixcloud_url" ),
+		Timeout => 20, 								
+		onBody  => sub {
+				my $content = shift->response->content;
+				my $json = eval { from_json($content) };
 
-	$meta->{'bitrate'} = ($trackdata->{'bitrate'}/1000).'kbps';
-	$meta->{'type'} = uc($trackdata->{'format'}).' (Mixcloud)';
-	$meta->{'url'} = $trackdata->{'url'};
-	$log->debug("updating ". 'mixcloud_meta_' . $url);
-	$cache->set( 'mixcloud_meta_' . $url, $meta, 3600 );
+				if ($json && $json->{'url'}) {
+					my $format = ($json->{url} =~ /.mp3/ ? "mp3" : "mp4");
 
-	return $trackdata;
+					# need to re-read from cache in case TrackDetails have been updated
+					$meta = $cache->get("mixcloud_item_$id") || {};
+					$meta->{'bitrate'} = $format eq 'mp3' ? '320k' : '70k';
+					$meta->{'format'} = $format;
+					$meta->{'type'} = "$format";
+					$meta->{'url'} = $json->{'url'};
+					$cache->set("mixcloud_item_$id", $meta, 3600);
+
+					$log->info("Got play URL $meta->{'url'} for $url from download");
+				} else {
+					$log->error("Empty response for play URL for $url", dump($json));
+				}	
+					
+				$cb->($meta) if $cb;
+		    },
+		onError => sub {
+				my ($self, $error) = @_;
+				$log->error("Error getting play URL for $url => $error");
+				$cb->() if $cb;
+			},
+		}
+	);
+	
+	return $meta;
 }
+
 sub getMetadataFor {
 	my ($class, $client, $url, undef, $fetch) = @_;
-	
-	my $cache = Slim::Utils::Cache->new;
-	$log->debug("getting ". 'mixcloud_meta_' . $url);
-	my $meta = $cache->get( 'mixcloud_meta_' . $url );
-
-	return $meta if $meta;
-
-	$log->debug('mixcloud_meta_' . $url .' not in cache. Fetching metadata...');
-	_fetchMeta($url);
-
-	return {};
+	return fetchTrackDetails($client, $url);
 }
 
-sub _fetchMeta {
-	my $url    = shift;
+# fetch track details and cache them in a menu entry
+sub fetchTrackDetails {
+	my ($client, $url) = @_;
+	my $id = getId($url);
+
+	my $item = $cache->get("mixcloud_item_$id");
+	return $item if $item && $item->{'play'};
 	
-	my ($trackhome) = $url =~ m{^mixcloud://(.*)$};
-	my $fetchURL = "http://api.mixcloud.com/" . $trackhome ;
-	$log->debug("fetching meta for $url with $fetchURL");
+	return {
+		bitrate => '320kbps/70kbps',
+		type => 'MP3/MP4 (Mixcloud)',
+		icon => __PACKAGE__->getIcon,
+	} if $client && $client->master->pluginData('fetchingMeta');
+	
+	my $fetchURL = "http://api.mixcloud.com/$id";
+	$client->master->pluginData( fetchingMeta => 1 ) if $client;
+	$log->info("Getting track details for $url", dump($item));
+	
 	Slim::Networking::SimpleAsyncHTTP->new(
 		
 		sub {
 			my $track = eval { from_json($_[0]->content) };
-			
-			if ($@) {
-				$log->warn($@);
-			}
-
-			my $icon = "";
-			if (defined $track->{'pictures'}->{'large'}) {
-				$icon = $track->{'pictures'}->{'large'};
-			}else{
-				if (defined $track->{'pictures'}->{'medium'}) {
-					$icon = $track->{'pictures'}->{'medium'};
-				}
-			}
-
-			my $DATA = {
-				duration => $track->{'audio_length'},
-				name => $track->{'name'},
-				title => $track->{'name'},
-				artist => $track->{'user'}->{'username'},
-				album => " ",
-				play => "mixcloud:/" . $track->{'key'},
-				bitrate => '320kbps/70kbps',
-				type => 'MP3/MP4 (Mixcloud)',
-				passthrough => [ { key => $track->{'key'}} ],
-				icon => $icon,
-				image => $icon,
-				cover => $icon,
-				on_select => 'play',
-			};
-
-			# Already set meta cache here, so that playlist does not have to
-			# query each track individually
-			my $cache = Slim::Utils::Cache->new;
-			$log->debug("setting ". 'mixcloud_meta_' . $DATA->{'play'});
-			$cache->set( 'mixcloud_meta_' . $DATA->{'play'}, $DATA, 3600 );
+			$log->warn($@) if ($@);
+			$client->master->pluginData( fetchingMeta => 0 ) if $client;
+			makeCacheItem($track);
 		}, 
 		
 		sub {
-			$log->error("error fetching track data: $_[1]");
+			$client->master->pluginData( fetchingMeta => 0 ) if $client;
+			$log->error("Error fetching track metadata for $url => $_[1]");
 		},
 		
-		{ timeout => 35 },
+		{ timeout => 20 },
 		
 	)->get($fetchURL);
 }
-sub scanUrl {
-	my ($class, $url, $args) = @_;
-	$args->{cb}->( $args->{song}->currentTrack() );
-}
+
 # Track Info menu
 sub trackInfo {
 	my ( $class, $client, $track ) = @_;
@@ -239,12 +250,14 @@ sub trackInfo {
 	$log->debug("trackInfo: " . $url);
 	return undef;
 }
+
 # Track Info menu
 sub trackInfoURL {
 	my ( $class, $client, $url ) = @_;
 	$log->debug("trackInfoURL: " . $url);
 	return undef;
 }
+
 # If an audio stream fails, keep playing
 sub handleDirectError {
 	my ( $class, $client, $url, $response, $status_line ) = @_;
@@ -265,30 +278,46 @@ sub getIcon {
 
 	return $noFallback ? '' : 'html/images/radio.png';
 }
-# Tweak user-agent for mixcloud to accept our request
-sub requestString {
-	my $self = shift;
-	my $request = $self->SUPER::requestString(@_);
-	my $ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0";
 
-	$request =~ s/(User-Agent:)\s*.*/\1: $ua/;
-	$request =~ s/Icy-MetaData:.+$CRLF//m;
-
-	return $request;
+sub getId {
+	my $url = shift;
+	my ($id) = $url =~ m{^(?:mixcloud)://(.*)$};
+	return $id;
 }
-sub explodePlaylist {
-	my ( $class, $client, $uri, $callback ) = @_;
 
-	if ( $uri =~ PAGE_URL_REGEXP ) {
-		Plugins::MixCloud::Plugin::urlHandler(
-			$client,
-			sub { $callback->([map {$_->{'play'}} @{$_[0]->{'items'}}]) },
-			{'search' => $uri},
-		);
+sub makeCacheItem {
+	my ($json) = shift;
+	my $icon = __PACKAGE__->getIcon;
+	my ($id) = ($json->{'key'} =~ /(?:\/)*(\S*)/);	
+	
+	if (defined $json->{'pictures'}->{'large'}) {
+		$icon = $json->{'pictures'}->{'large'};
+	} elsif (defined $json->{'pictures'}->{'medium'}) {
+		$icon = $json->{'pictures'}->{'medium'};
 	}
-	else {
-		$callback->([$uri]);
-	}
+	
+	my $item = {
+		duration => $json->{'audio_length'},
+		name => $json->{'name'},
+		title => $json->{'name'},
+		artist => $json->{'user'}->{'username'},
+		play => "mixcloud://$id",
+		bitrate => '320kbps/70kbps',
+		type => 'mp3/mp4 (mixcloud)',
+		passthrough => [ { key => $json->{'key'}} ],
+		icon => $icon,
+		image => $icon,
+		cover => $icon,
+		on_select => 'play',
+	};
+
+	# Set meta cache here, so that playlist does not have to query each track 
+	# individually althoughsmall risk to overwrite the trackDetail query
+	$log->debug("Caching mixcloud_item_$id", dump($item));
+	$cache->set("mixcloud_item_$id", $item, 3600);
+
+	return $item;
 }
+
 
 1;
