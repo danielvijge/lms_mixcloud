@@ -10,16 +10,7 @@ package Plugins::MixCloud::ProtocolHandler;
 use strict;
 
 use vars qw(@ISA);
-
-BEGIN {
-	require Slim::Player::Protocols::HTTP;
-	if (Slim::Player::Protocols::HTTP->can('response')) {
-		push @ISA, qw(Slim::Player::Protocols::HTTPS);
-	} else {
-		require Plugins::MixCloud::Buffered;
-		push @ISA, qw(Plugins::MixCloud::Buffered);		
-	}
-}
+use base qw(Slim::Player::Protocols::HTTPS);
 
 use List::Util qw(min max);
 use HTML::Parser;
@@ -44,10 +35,12 @@ my $cache = Slim::Utils::Cache->new;
 
 Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__);
 
-$prefs->init({ apiKey => "", playformat => "mp4"});
-
 sub isPlaylistURL { 0 }
-sub canDirectStream { 0 };
+
+sub canDirectStream { 
+	return 0 if $prefs->get('useBuffered') && !Slim::Player::Protocols::HTTP->can('response');
+	return shift->SUPER::canDirectStream(@_);
+};
 
 sub scanUrl {
 	my ($class, $url, $args) = @_;
@@ -68,16 +61,25 @@ sub new {
 	my $song      = $args->{song};
 	my $streamUrl = $song->streamUrl() || return;
 	my $track     = $song->pluginData();
+
 	$log->info( 'Remote streaming Mixcloud track: ' . $streamUrl );
 
-	my $self = $class->SUPER::new({
-		url => $streamUrl,
+	my $params = {
+		url     => $streamUrl,
 		song    => $song,
 		client  => $client,
-		useEnhancedHTTP => 2,
-	});
+	};	
 	
-	return $self;
+	# this may be a bit dangerous if another track is streaming...
+	if (Slim::Player::Protocols::HTTP->can('response') || !$prefs->get('useBuffered')) {
+		require Slim::Player::Protocols::HTTPS;
+		@ISA = qw(Slim::Player::Protocols::HTTPS);
+	} else {	
+		require Plugins::MixCloud::Buffered;
+		@ISA = qw(Plugins::MixCloud::Buffered);
+	}
+
+	return $class->SUPER::new($params);
 }
 
 # Tweak user-agent for mixcloud to accept our request

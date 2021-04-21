@@ -23,7 +23,7 @@ sub prefs {
 	my $class = shift;
 	# playformat not used for now
 	my @prefs = ( preferences('plugin.mixcloud'), qw(apiKey) );
-	push @prefs, qw(useBuffered) if Plugins::MixCloud::ProtocolHandler->isa("Plugins::MixCloud::Buffered");
+	push @prefs, qw(useBuffered) unless Slim::Player::Protocols::HTTP->can('response');
 	return @prefs;
 }
 
