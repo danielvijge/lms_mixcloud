@@ -3,7 +3,7 @@
     <title lang="EN">Mixcloud Plugin</title>
   </details>
   <plugins>
-    <plugin name="MixCloud" version="{{ env['VERSION'] }}" minTarget="7.5" maxTarget="*">
+    <plugin name="MixCloud" version="{{ env['VERSION'] }}" minTarget="8.1" maxTarget="*">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
       <url>http://danielvijge.github.io/lms_mixcloud/{{ env['FOLDER'] }}/lms_mixcloud-{{ env['VERSION'] }}.zip</url>
