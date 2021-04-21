@@ -225,7 +225,7 @@ sub fetchTrackDetails {
 		icon => __PACKAGE__->getIcon,
 	} if $client && $client->master->pluginData('fetchingMeta');
 	
-	my $fetchURL = "http://api.mixcloud.com/$id";
+	my $fetchURL = "https://api.mixcloud.com/$id";
 	$client->master->pluginData( fetchingMeta => 1 ) if $client;
 	$log->info("Getting track details for $url", dump($item));
 	
