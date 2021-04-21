@@ -13,6 +13,8 @@ use Slim::Utils::Misc;
 my $log   = logger('plugin.mixcloud');
 my $prefs = preferences('plugin.mixcloud');
 
+sub canDirectStream { 0 }
+
 sub new {
 	my $class  = shift;
 	my $self = $class->SUPER::new(@_);
