@@ -32,7 +32,7 @@ my $token = "";
 my $prefs = preferences('plugin.mixcloud');
 my $log = logger('plugin.mixcloud');
 
-$prefs->init({ apiKey => "", playformat => "mp4" });
+$prefs->init({ apiKey => "", playformat => "mp4", useBuffered => 1 });
 
 sub getToken {
 	my ($callback) = shift;

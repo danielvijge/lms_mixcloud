@@ -12,12 +12,13 @@ use strict;
 use vars qw(@ISA);
 
 BEGIN {
-	if (eval { require Slim::Player::Protocols::Buffered }) {
-		push @ISA, qw(Slim::Player::Protocols::Buffered);
+	require Slim::Player::Protocols::HTTP;
+	if (Slim::Player::Protocols::HTTP->can('response')) {
+		push @ISA, qw(Slim::Player::Protocols::HTTPS);
 	} else {
 		require Plugins::MixCloud::Buffered;
-		push @ISA, qw(Plugins::MixCloud::Buffered);
-	}	
+		push @ISA, qw(Plugins::MixCloud::Buffered);		
+	}
 }
 
 use List::Util qw(min max);
@@ -73,6 +74,7 @@ sub new {
 		url => $streamUrl,
 		song    => $song,
 		client  => $client,
+		useEnhancedHTTP => 2,
 	});
 	
 	return $self;

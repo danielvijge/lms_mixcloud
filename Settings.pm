@@ -20,7 +20,17 @@ sub page {
 }
 
 sub prefs {
-	return (preferences('plugin.mixcloud'), qw(apiKey playformat));
+	my $class = shift;
+	# playformat not used for now
+	my @prefs = ( preferences('plugin.mixcloud'), qw(apiKey) );
+	push @prefs, qw(useBuffered) if Plugins::MixCloud::ProtocolHandler->isa("Plugins::MixCloud::Buffered");
+	return @prefs;
+}
+
+sub handler {
+	my ($class, $client, $params) = @_;
+	$params->{"pref_useBuffered"} = 0 unless defined $params->{"pref_useBuffered"};	
+	return $class->SUPER::handler( $client, $params );
 }
 
 1;
