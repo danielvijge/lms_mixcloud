@@ -40,7 +40,7 @@ sub isPlaylistURL { 0 }
 sub canDirectStream { 
 	return 0 if $prefs->get('useBuffered') && !Slim::Player::Protocols::HTTP->can('response');
 	return shift->SUPER::canDirectStream(@_);
-};
+}
 
 sub scanUrl {
 	my ($class, $url, $args) = @_;
@@ -71,7 +71,7 @@ sub new {
 	};	
 	
 	# this may be a bit dangerous if another track is streaming...
-	if (Slim::Player::Protocols::HTTP->can('response') || !$prefs->get('useBuffered')) {
+	if (Slim::Player::Protocols::HTTP->can('canEnhanceHTTP') || !$prefs->get('useBuffered')) {
 		require Slim::Player::Protocols::HTTPS;
 		@ISA = qw(Slim::Player::Protocols::HTTPS);
 	} else {	
