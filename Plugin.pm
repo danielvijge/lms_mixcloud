@@ -30,7 +30,11 @@ my $CLIENT_SECRET = "scDXfRbbTyDHHGgDhhSccHpNgYUa7QAW";
 my $token = "";
 
 my $prefs = preferences('plugin.mixcloud');
-my $log = logger('plugin.mixcloud');
+my $log = Slim::Utils::Log->addLogCategory({
+	'category'     => 'plugin.mixcloud',
+	'defaultLevel' => 'ERROR',
+	'description'  => string('PLUGIN_MIXCLOUD'),
+});
 
 $prefs->init({ apiKey => "", playformat => "mp4", useBuffered => 1 });
 
