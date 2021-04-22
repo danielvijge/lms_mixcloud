@@ -36,7 +36,7 @@ my $log = Slim::Utils::Log->addLogCategory({
 	'description'  => string('PLUGIN_MIXCLOUD'),
 });
 
-$prefs->init({ apiKey => "", playformat => "mp4" });
+$prefs->init({ apiKey => "", playformat => "mp4", useBuffered => 1 });
 
 sub getToken {
 	my ($callback) = shift;
@@ -213,7 +213,7 @@ sub urlHandler {
 	$url =~ s/www /www./;
 	$url =~ s/http:\/\/ /https:\/\//;
 	my ($id) = $url =~ m{^https://(?:www|m).mixcloud.com/(.*)$};
-	my $queryUrl = "http://api.mixcloud.com/" . $id ;
+	my $queryUrl = "https://api.mixcloud.com/" . $id ;
 	return unless $id;
 
 	$log->debug("fetching $queryUrl");

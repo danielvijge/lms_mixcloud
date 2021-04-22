@@ -64,5 +64,11 @@ PLUGIN_MIXCLOUD_PLAYMETHOD
 PLUGIN_MIXCLOUD_PLAYMETHOD_DESC
 	EN	All tracks are available in MP4 format, and selecting a track is fast. However, MP4 does not work natively on old Squeezebox models, and must be transcoded for those players. MP3 has a better sound quality, but loading a track takes a long time, and not all tracks are available in MP3 format.
 	
+PLUGIN_MIXCLOUD_USEBUFFERED
+	EN	Buffer streams in system's temp directory
+
+PLUGIN_MIXCLOUD_USEBUFFERED_DESC
+	EN	MixCloud server does not like very long streaming sessions. This option downloads the file as quickly as possible in the system's temp directory and closes the connection. Used disk spaced is released when songs end.
+	
 PLUGIN_MIXCLOUD_STREAM_FAILED
 	EN	Connection error

@@ -1,24 +1,25 @@
 [% PROCESS settings/header.html %]
 
 	[% WRAPPER setting title="PLUGIN_MIXCLOUD_APIKEY" desc="PLUGIN_MIXCLOUD_APIKEY_DESC" %]
-	<div class="prefDesc">
 		<input type="text" class="stdedit" name="pref_apiKey" value="[% prefs.apiKey %]" size="40" />
 		<br/>
-		<a target="_blank" href="http://danielvijge.github.io/lms_mixcloud/app.html">Get your apiKey for Mixcloud at mixcloud.com</a>
-	</div>
-
+		<a target="_blank" href="https://danielvijge.github.io/lms_mixcloud/app.html">Get your apiKey for Mixcloud at mixcloud.com</a>
 	[% END %]
 
-<!--
-	[% WRAPPER setting title="PLUGIN_MIXCLOUD_PLAYMETHOD" desc="PLUGIN_MIXCLOUD_PLAYMETHOD_DESC" %]
-	<div class="prefDesc">
-		<select name="pref_playformat" class="stdedit">
-			<option[% IF prefs.playformat == 'mp4' %] selected[% END %] value="mp4">Always use MP4 format</option>
-			<option[% IF prefs.playformat == 'mp3' %] selected[% END %] value="mp3">Use MP3 format if available</option>
-		</select>
-	</div>
+	[% IF prefs.exists('pref_playformat') %]
+		[% WRAPPER setting title="PLUGIN_MIXCLOUD_PLAYMETHOD" desc="PLUGIN_MIXCLOUD_PLAYMETHOD_DESC" %]
+			<select name="pref_playformat" class="stdedit">
+				<option[% IF prefs.playformat == 'mp4' %] selected[% END %] value="mp4">Always use MP4 format</option>
+				<option[% IF prefs.playformat == 'mp3' %] selected[% END %] value="mp3">Use MP3 format if available</option>
+			</select>
+		[% END %]
+	[% END %]	
 
-	[% END %]
--->	
+
+	[% IF prefs.exists('pref_useBuffered') %]
+		[% WRAPPER setting title="PLUGIN_MIXCLOUD_USEBUFFERED" desc="PLUGIN_MIXCLOUD_USEBUFFERED_DESC" %]
+		<input type="checkbox" [% IF prefs.pref_useBuffered %]checked="1" [% END %] class="stdedit" name="pref_useBuffered" id="useBuffered" value="1" />
+		[% END %]
+	[% END %]	
 
 [% PROCESS settings/footer.html %]
