@@ -21,7 +21,7 @@ sub new {
 	# but the switch of socket handler can only be done within _sysread otherwise
 	# we will timeout when there is a pipeline with a callback 
 	if (Slim::Utils::Misc->can('getTempDir')) { 
-		${*$self}{'_fh'} = File::Temp->new( DIR => Slim::Utils::Misc::getTempDir );
+		${*$self}{'_fh'} = File::Temp->new( DIR => Slim::Utils::Misc::getTempDir() );
 	} else {
 		${*$self}{'_fh'} = File::Temp->new;
 	}
