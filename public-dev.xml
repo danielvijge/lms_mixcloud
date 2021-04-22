@@ -3,12 +3,12 @@
     <title lang="EN">Mixcloud Plugin</title>
   </details>
   <plugins>
-    <plugin name="MixCloud" version="0.5.2" minTarget="8.1" maxTarget="*">
+    <plugin name="MixCloud" version="0.5.4" minTarget="8.1" maxTarget="*">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
-      <url>http://danielvijge.github.io/lms_mixcloud/dev-builds/lms_mixcloud-0.5.2.zip</url>
+      <url>http://danielvijge.github.io/lms_mixcloud/dev-builds/lms_mixcloud-0.5.4.zip</url>
       <link>https://github.com/danielvijge/lms_mixcloud</link>
-      <sha>7fc1a097a8ab3121834e095db18cb9bed01259f0</sha>
+      <sha>5167ed6e8f124e4952f81c8012a8183ad260a4ff</sha>
       <creator>Christian Mueller, Daniel Vijge</creator>
     </plugin>
   </plugins>
