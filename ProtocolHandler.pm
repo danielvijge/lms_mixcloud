@@ -172,7 +172,7 @@ sub _fetchTrackExtra {
 		request => HTTP::Request->new( POST => 'https://www.dlmixcloud.com/ajax.php', 
 		                               [ 'User-Agent' => USER_AGENT, 'Content-Type' => 'application/x-www-form-urlencoded' ], 
 									   "url=$mixcloud_url" ),
-		Timeout => 20, 								
+		Timeout => 30, 								
 		onBody  => sub {
 				my $content = shift->response->content;
 				my $json = eval { from_json($content) };
@@ -207,45 +207,43 @@ sub _fetchTrackExtra {
 }
 
 sub getMetadataFor {
-	my ($class, $client, $url, undef, $fetch) = @_;
-	return fetchTrackDetails($client, $url);
-}
-
-# fetch track details and cache them in a menu entry
-sub fetchTrackDetails {
-	my ($client, $url) = @_;
+	my ($class, $client, $url) = @_;
+	
 	my $id = getId($url);
-
 	my $item = $cache->get("mixcloud_item_$id");
+	
 	return $item if $item && $item->{'play'};
 	
+	if (!$client->master->pluginData('fetchingMeta')) {
+		my $fetchURL = "https://api.mixcloud.com/$id";
+
+		$client->master->pluginData( fetchingMeta => 1 ) if $client;
+		$log->info("Getting track details for $url", dump($item));
+	
+		Slim::Networking::SimpleAsyncHTTP->new(
+		
+			sub {
+				my $track = eval { from_json($_[0]->content) };
+				$log->warn($@) if ($@);
+				$client->master->pluginData( fetchingMeta => 0 ) if $client;
+				makeCacheItem($track);
+			}, 
+		
+			sub {
+				$client->master->pluginData( fetchingMeta => 0 ) if $client;
+				$log->error("Error fetching track metadata for $url => $_[1]");
+			},
+		
+			{ timeout => 30 },
+		
+		)->get($fetchURL);
+	}	
+
 	return {
 		bitrate => '320kbps/70kbps',
 		type => 'MP3/MP4 (Mixcloud)',
 		icon => __PACKAGE__->getIcon,
-	} if $client && $client->master->pluginData('fetchingMeta');
-	
-	my $fetchURL = "https://api.mixcloud.com/$id";
-	$client->master->pluginData( fetchingMeta => 1 ) if $client;
-	$log->info("Getting track details for $url", dump($item));
-	
-	Slim::Networking::SimpleAsyncHTTP->new(
-		
-		sub {
-			my $track = eval { from_json($_[0]->content) };
-			$log->warn($@) if ($@);
-			$client->master->pluginData( fetchingMeta => 0 ) if $client;
-			makeCacheItem($track);
-		}, 
-		
-		sub {
-			$client->master->pluginData( fetchingMeta => 0 ) if $client;
-			$log->error("Error fetching track metadata for $url => $_[1]");
-		},
-		
-		{ timeout => 20 },
-		
-	)->get($fetchURL);
+	};
 }
 
 # Track Info menu
