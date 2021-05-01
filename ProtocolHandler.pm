@@ -136,7 +136,7 @@ sub getNextTrack {
 					passthrough => [ $song->track, 
 					                 { cb => sub {
 			                             $meta->{bitrate} = int($song->track->bitrate/1000) . 'k';
-			                             $cache->set('mixcloud_item_' . getId($url), $meta, 3600);
+			                             $cache->set('mixcloud_item_' . getId($url), $meta, '1day');
 			                             $successCb->(); 
 									 } },
 									 $meta->{'url'} ],
@@ -186,7 +186,7 @@ sub _fetchTrackExtra {
 					$meta->{'format'} = $format;
 					$meta->{'type'} = "$format";
 					$meta->{'url'} = $json->{'url'};
-					$cache->set("mixcloud_item_$id", $meta, 3600);
+					$cache->set("mixcloud_item_$id", $meta, '1day');
 
 					$log->info("Got play URL $meta->{'url'} for $url from download");
 				} else {
@@ -214,10 +214,10 @@ sub getMetadataFor {
 	
 	return $item if $item && $item->{'play'};
 	
-	if (!$client->master->pluginData('fetchingMeta')) {
+	if (!$client->pluginData('fetchingMeta')) {
 		my $fetchURL = "https://api.mixcloud.com/$id";
 
-		$client->master->pluginData( fetchingMeta => 1 ) if $client;
+		$client->pluginData( fetchingMeta => 1 ) if $client;
 		$log->info("Getting track details for $url", dump($item));
 	
 		Slim::Networking::SimpleAsyncHTTP->new(
@@ -225,12 +225,12 @@ sub getMetadataFor {
 			sub {
 				my $track = eval { from_json($_[0]->content) };
 				$log->warn($@) if ($@);
-				$client->master->pluginData( fetchingMeta => 0 ) if $client;
-				makeCacheItem($track);
+				$client->pluginData( fetchingMeta => 0 ) if $client;
+				makeCacheItem($track, '1day');
 			}, 
 		
 			sub {
-				$client->master->pluginData( fetchingMeta => 0 ) if $client;
+				$client->pluginData( fetchingMeta => 0 ) if $client;
 				$log->error("Error fetching track metadata for $url => $_[1]");
 			},
 		
@@ -290,7 +290,8 @@ sub getId {
 }
 
 sub makeCacheItem {
-	my ($json) = shift;
+	my ($json, $cache_duration) = @_;
+
 	my $icon = __PACKAGE__->getIcon;
 	my ($id) = ($json->{'key'} =~ /(?:\/)*(\S*)/);	
 	
@@ -318,7 +319,7 @@ sub makeCacheItem {
 	# Set meta cache here, so that playlist does not have to query each track 
 	# individually althoughsmall risk to overwrite the trackDetail query
 	$log->debug("Caching mixcloud_item_$id", dump($item));
-	$cache->set("mixcloud_item_$id", $item, 3600);
+	$cache->set("mixcloud_item_$id", $item, $cache_duration || '10min');
 
 	return $item;
 }
