@@ -65,7 +65,7 @@ sub getToken {
 
 sub _provider {
 	my ($client, $url) = @_;
-	return Plugins::MixCloud::ProtocolHandler::fetchTrackDetail($client, $url);
+	return Plugins::MixCloud::ProtocolHandler::getMetadataFor($client, $url);
 }
 
 sub _parseTracks {
