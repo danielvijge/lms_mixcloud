@@ -136,7 +136,7 @@ sub getNextTrack {
 					passthrough => [ $song->track, 
 					                 { cb => sub {
 			                             $meta->{bitrate} = int($song->track->bitrate/1000) . 'k';
-			                             $cache->set('mixcloud_item_' . getId($url), $meta, 3600);
+			                             $cache->set('mixcloud_item_' . getId($url), $meta, '1day');
 			                             $successCb->(); 
 									 } },
 									 $meta->{'url'} ],
@@ -172,7 +172,7 @@ sub _fetchTrackExtra {
 		request => HTTP::Request->new( POST => 'https://www.dlmixcloud.com/ajax.php', 
 		                               [ 'User-Agent' => USER_AGENT, 'Content-Type' => 'application/x-www-form-urlencoded' ], 
 									   "url=$mixcloud_url" ),
-		Timeout => 20, 								
+		Timeout => 30, 								
 		onBody  => sub {
 				my $content = shift->response->content;
 				my $json = eval { from_json($content) };
@@ -186,7 +186,7 @@ sub _fetchTrackExtra {
 					$meta->{'format'} = $format;
 					$meta->{'type'} = "$format";
 					$meta->{'url'} = $json->{'url'};
-					$cache->set("mixcloud_item_$id", $meta, 3600);
+					$cache->set("mixcloud_item_$id", $meta, '1day');
 
 					$log->info("Got play URL $meta->{'url'} for $url from download");
 				} else {
@@ -207,45 +207,43 @@ sub _fetchTrackExtra {
 }
 
 sub getMetadataFor {
-	my ($class, $client, $url, undef, $fetch) = @_;
-	return fetchTrackDetails($client, $url);
-}
-
-# fetch track details and cache them in a menu entry
-sub fetchTrackDetails {
-	my ($client, $url) = @_;
+	my ($class, $client, $url) = @_;
+	
 	my $id = getId($url);
-
 	my $item = $cache->get("mixcloud_item_$id");
+	
 	return $item if $item && $item->{'play'};
 	
+	if (!$client->pluginData('fetchingMeta')) {
+		my $fetchURL = "https://api.mixcloud.com/$id";
+
+		$client->pluginData( fetchingMeta => 1 ) if $client;
+		$log->info("Getting track details for $url", dump($item));
+	
+		Slim::Networking::SimpleAsyncHTTP->new(
+		
+			sub {
+				my $track = eval { from_json($_[0]->content) };
+				$log->warn($@) if ($@);
+				$client->pluginData( fetchingMeta => 0 ) if $client;
+				makeCacheItem($track, '1day');
+			}, 
+		
+			sub {
+				$client->pluginData( fetchingMeta => 0 ) if $client;
+				$log->error("Error fetching track metadata for $url => $_[1]");
+			},
+		
+			{ timeout => 30 },
+		
+		)->get($fetchURL);
+	}	
+
 	return {
 		bitrate => '320kbps/70kbps',
 		type => 'MP3/MP4 (Mixcloud)',
 		icon => __PACKAGE__->getIcon,
-	} if $client && $client->master->pluginData('fetchingMeta');
-	
-	my $fetchURL = "https://api.mixcloud.com/$id";
-	$client->master->pluginData( fetchingMeta => 1 ) if $client;
-	$log->info("Getting track details for $url", dump($item));
-	
-	Slim::Networking::SimpleAsyncHTTP->new(
-		
-		sub {
-			my $track = eval { from_json($_[0]->content) };
-			$log->warn($@) if ($@);
-			$client->master->pluginData( fetchingMeta => 0 ) if $client;
-			makeCacheItem($track);
-		}, 
-		
-		sub {
-			$client->master->pluginData( fetchingMeta => 0 ) if $client;
-			$log->error("Error fetching track metadata for $url => $_[1]");
-		},
-		
-		{ timeout => 20 },
-		
-	)->get($fetchURL);
+	};
 }
 
 # Track Info menu
@@ -292,7 +290,8 @@ sub getId {
 }
 
 sub makeCacheItem {
-	my ($json) = shift;
+	my ($json, $cache_duration) = @_;
+
 	my $icon = __PACKAGE__->getIcon;
 	my ($id) = ($json->{'key'} =~ /(?:\/)*(\S*)/);	
 	
@@ -320,7 +319,7 @@ sub makeCacheItem {
 	# Set meta cache here, so that playlist does not have to query each track 
 	# individually althoughsmall risk to overwrite the trackDetail query
 	$log->debug("Caching mixcloud_item_$id", dump($item));
-	$cache->set("mixcloud_item_$id", $item, 3600);
+	$cache->set("mixcloud_item_$id", $item, $cache_duration || '10min');
 
 	return $item;
 }
