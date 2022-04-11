@@ -202,7 +202,7 @@ sub _fetchTrackExtra {
 					$meta->{'type'} = "$format";
 					$meta->{'url'} = $json->{'url'};
 					$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
-					$meta->{'album'} = 'MixCloud';
+					$meta->{'album'} = 'Mixcloud';
 					
 					$log->info("Got play URL $meta->{'url'} for $url from download");
 				} else {
@@ -409,7 +409,7 @@ sub makeCacheItem {
 				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
 		line2 => $json->{'user'}->{'name'} . ($year ? ' (' . $year . ')' : ''),
 		artist => ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}),
-		album => "MixCloud",
+		album => "Mixcloud",
 		play => "mixcloud://$id",
 		# There's no way to derive bitrate and type until the stream headers are read.
 		# If bitrate and type fields are set here then they are not updated correctly with data from the headers.
