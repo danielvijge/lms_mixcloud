@@ -399,15 +399,8 @@ sub makeCacheItem {
 	my $item = {
 		id => $id,
 		duration => $json->{'audio_length'},
-		# line1 and line2 are used in browse view
-		# artist and title are used in the now playing and playlist views
-		name => $json->{'name'} . ' by ' . ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}) . ($duration ? ' (' . $duration . ')': '') .
-				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
-		title => $json->{'name'} . ' by ' . ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}) . ($duration ? ' (' . $duration . ')': '') .
-				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
-		line1 => $json->{'name'} . ($duration ? ' (' . $duration . ')': '') .
-				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
-		line2 => $json->{'user'}->{'name'} . ($year ? ' (' . $year . ')' : ''),
+		name => $json->{'name'} . ($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
+		title => $json->{'name'} . ($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
 		artist => ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}),
 		album => "Mixcloud",
 		play => "mixcloud://$id",
@@ -424,6 +417,7 @@ sub makeCacheItem {
 		on_select => 'play',
 	};
 
+	
 	# Set meta cache here, so that playlist does not have to query each track 
 	# individually although small risk to overwrite the trackDetail query
 	$log->debug("Caching mixcloud_item_$id", dump($item));
@@ -433,6 +427,19 @@ sub makeCacheItem {
 	my $simpleTracks = (($args->{params} && $args->{params}->{isWeb} && preferences('server')->get('skin')=~ /Classic|EN/i) ? 1 : 0);
 	if (!$simpleTracks) {
         $item->{'items'} = $trackInfo;
+    }
+	
+	# Replace some fields if the call comes from Plugin.pm but do not cache.
+	if ($args->{params} && $args->{params}->{isPlugin}) {
+		# line1 and line2 are used in browse view
+		# artist and title are used in the now playing and playlist views
+		$item->{name} = $json->{'name'} . ' by ' . ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}) . ($duration ? ' (' . $duration . ')': '') .
+				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
+		$item->{title} = $json->{'name'} . ' by ' . ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}) . ($duration ? ' (' . $duration . ')': '') .
+				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
+		$item->{line1} = $json->{'name'} . ($duration ? ' (' . $duration . ')': '') .
+				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
+		$item->{line2} = $json->{'user'}->{'name'} . ($year ? ' (' . $year . ')' : ''),        
     }
     
 	return $item;
