@@ -229,7 +229,7 @@ sub getMetadataFor {
 	my $item = $cache->get("mixcloud_item_$id");
 	
 	# this is ugly... for whatever reason the EN/Classic skins can't handle tracks with an items element
-	if ($args->{params} && $args->{params}->{isWeb} && preferences('server')->get('skin')=~ /Classic|EN/i) {
+	if ($args ne 'forceCurrent' && ($args->{params} && $args->{params}->{isWeb} && preferences('server')->get('skin')=~ /Classic|EN/i)) {
 		delete @$item{'items'};
     } 
 	
