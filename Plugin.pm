@@ -76,9 +76,10 @@ sub _provider {
 
 sub _parseTracks {
 	my ($client, $json, $menu) = @_;
+	my $args = { params => {isPlugin => 1}};
 	my $data = $json->{'data'}; 
 	for my $entry (@$data) {
-		push @$menu, Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $entry);
+		push @$menu, Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $entry, $args);
 	}
 }
 
@@ -266,7 +267,8 @@ sub urlHandler {
 				my $http = shift;
 				my $item = eval { from_json($http->content) };
 				$log->warn($@) if $@;
-				$callback->( { items => [ Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $item) ] } );
+				my $args = { params => {isPlugin => 1}};
+				$callback->( { items => [ Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $item, $args) ] } );
 			},
 			sub {
 				$log->error("error: $_[1]");
