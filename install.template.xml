@@ -13,6 +13,6 @@
     <maxVersion>*</maxVersion>
   </targetApplication>
     <optionsURL>plugins/MixCloud/settings/basic.html</optionsURL>
-    <creator>Christian Mueller, Daniel Vijge</creator>
+    <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     <email>spam+squeezebox@vijge.net</email>
 </extension>

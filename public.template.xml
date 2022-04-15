@@ -9,7 +9,7 @@
       <url>https://danielvijge.github.io/lms_mixcloud/{{ env['FOLDER'] }}/lms_mixcloud-{{ env['VERSION'] }}.zip</url>
       <link>https://github.com/danielvijge/lms_mixcloud</link>
       <sha>{{ env['SHA'] }}</sha>
-      <creator>Christian Mueller, Daniel Vijge</creator>
+      <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     </plugin>
   </plugins>
 </extensions>
