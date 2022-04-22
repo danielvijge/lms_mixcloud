@@ -1,0 +1,15 @@
+<extensions>
+  <details>
+    <title lang="EN">Mixcloud Plugin</title>
+  </details>
+  <plugins>
+    <plugin name="MixCloud" version="{{ env['VERSION'] }}" minTarget="8.1" maxTarget="*">
+      <title lang="EN">Mixcloud</title>
+      <desc lang="EN">Play music from Mixcloud</desc>
+      <url>https://danielvijge.github.io/lms_mixcloud/{{ env['FOLDER'] }}/lms_mixcloud-{{ env['VERSION'] }}.zip</url>
+      <link>https://github.com/danielvijge/lms_mixcloud</link>
+      <sha>{{ env['SHA'] }}</sha>
+      <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
+    </plugin>
+  </plugins>
+</extensions>
