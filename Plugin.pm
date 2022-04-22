@@ -95,6 +95,8 @@ sub tracksHandler {
 	my $parser = $passDict->{'parser'} || \&_parseTracks;
 	my $params = $passDict->{'params'} || '';
 
+	$params =~ s/\/$//;     # Strip possible trailing / because one always added below
+
 	$log->debug('search type: ' . $searchType);
 	$log->debug("index: " . $index);
 	$log->debug("quantity: " . $quantity);
@@ -151,9 +153,9 @@ sub tracksHandler {
 	
 	my $queryUrl;
 	if ($quantity == 1) {
-        $queryUrl = "$method://api.mixcloud.com/$resource?offset=$index&limit=$quantity" . $params;
+        $queryUrl = "$method://api.mixcloud.com/$resource/?offset=$index&limit=$quantity" . $params;
     } else {
-		$queryUrl = "$method://api.mixcloud.com/$resource?limit=$quantity" . $params;
+		$queryUrl = "$method://api.mixcloud.com/$resource/?limit=$quantity" . $params;
 	}
     
 	# Adding the token to the end of each request returns more details
