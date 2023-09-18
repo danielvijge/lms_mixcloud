@@ -47,6 +47,11 @@ sub canDirectStream {
 	return shift->SUPER::canDirectStream(@_);
 }
 
+# MixCloud streams must use Persistent mode streaming, else they fail after a few minutes
+sub canEnhanceHTTP {
+	return 1;
+}
+
 sub scanUrl {
 	my ($class, $url, $args) = @_;
 	$args->{cb}->( $args->{song}->currentTrack() );
