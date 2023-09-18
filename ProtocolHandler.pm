@@ -30,8 +30,11 @@ use Slim::Utils::Cache;
 use Scalar::Util qw(blessed);
 use Slim::Utils::Strings qw(string cstring);
 
+use Time::HiRes qw(time);
+
 use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
 use constant USER_AGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0';
+use constant X_REQUESTED_WITH => 'XMLHttpRequest';
 use constant META_CACHE_TTL => 86400 * 30; # 24 hours x 30 = 30 days
 
 my $log   = logger('plugin.mixcloud');
@@ -162,6 +165,28 @@ sub getNextTrack {
 	);
 }
 
+# Calculate secret key that must be part of the POST request
+# reverse engineered from from the JavaScript implementation
+sub _calculateLocoloaderKey {
+	my ($url) = @_;
+  my $key = "";
+  my $ts = sprintf("%.0f", time() * 1000);
+  for my $i (0 .. length($url) - 1) {
+    if (substr($url, $i, 1) eq "t" or substr($url, $i, 1) eq ":" or substr($url, $i, 1) eq "/") {
+      if (length($ts) > $i) {
+         $key .= substr($ts, $i, 1);
+      }
+    } elsif ($i % 2) {
+       $key .= substr($url, $i, 1);
+    } else {
+      if (length($ts) > $i) {
+        $key .= substr($ts, $i, 1);
+      }
+    }
+  }
+  return $key;
+}
+
 # complement track details (url, format, bitrate) using dmixcloud
 sub _fetchTrackExtra {
 	my ($url, $cb) = @_;
@@ -183,24 +208,28 @@ sub _fetchTrackExtra {
 	
 	$log->info("Fetching complement with downloader $url $mixcloud_url");
 	
+	my $key = _calculateLocoloaderKey($mixcloud_url);
+	$log->debug("Calculated LocoLoader key $key");
+
 	$http->send_request( {
-		request => HTTP::Request->new( POST => 'https://www.dlmixcloud.com/ajax.php', 
-		                               [ 'User-Agent' => USER_AGENT, 'Content-Type' => 'application/x-www-form-urlencoded' ], 
-									   "url=$mixcloud_url" ),
+		request => HTTP::Request->new( POST => 'https://www.locoloader.com/api-extract/', 
+		                               [ 'User-Agent' => USER_AGENT, 'X-Requested-With' => X_REQUESTED_WITH, 'Content-Type' => 'application/x-www-form-urlencoded' ], 
+									   "url=$mixcloud_url&key=$key" ),
 		Timeout => 30, 								
 		onBody  => sub {
 				my $content = shift->response->content;
 				my $json = eval { from_json($content) };
 
-				if ($json && $json->{'url'}) {
-					my $format = ($json->{url} =~ /.mp3/ ? "mp3" : "mp4");
+				if ($json && $json->{'final_urls'}[0]{'links'}[0]) {
+					my $json_data = $json->{'final_urls'}[0]{'links'}[0];
+					my $format = ($json_data->{'link_url'} =~ /.mp3/ ? "mp3" : "mp4");
 					# need to re-read from cache in case TrackDetails have been updated
 					$meta = $cache->get("mixcloud_item_$id") || {};
 					# See comments regarding bitrate and type in makeCacheItem.
 					# $meta->{'bitrate'} = $format eq 'mp3' ? '128k' : '64k';
 					$meta->{'format'} = $format;
 					$meta->{'type'} = "$format";
-					$meta->{'url'} = $json->{'url'};
+					$meta->{'url'} = $json_data->{'link_url'};
 					$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
 					$meta->{'album'} = 'Mixcloud';
 					
