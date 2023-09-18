@@ -184,23 +184,23 @@ sub _fetchTrackExtra {
 	$log->info("Fetching complement with downloader $url $mixcloud_url");
 	
 	$http->send_request( {
-		request => HTTP::Request->new( POST => 'https://www.dlmixcloud.com/ajax.php', 
-		                               [ 'User-Agent' => USER_AGENT, 'Content-Type' => 'application/x-www-form-urlencoded' ], 
+		request => HTTP::Request->new( POST => 'https://www.savelink.info/input', 
+		                               [ 'User-Agent' => USER_AGENT, 'X-Requested-With' => 'XMLHttpRequest', 'Content-Type' => 'application/x-www-form-urlencoded' ], 
 									   "url=$mixcloud_url" ),
-		Timeout => 30, 								
+		Timeout => 30,
 		onBody  => sub {
 				my $content = shift->response->content;
 				my $json = eval { from_json($content) };
 
-				if ($json && $json->{'url'}) {
-					my $format = ($json->{url} =~ /.mp3/ ? "mp3" : "mp4");
+				if ($json && $json->{'link'}) {
+					my $format = ($json->{'link'} =~ /.mp3/ ? "mp3" : "mp4");
 					# need to re-read from cache in case TrackDetails have been updated
 					$meta = $cache->get("mixcloud_item_$id") || {};
 					# See comments regarding bitrate and type in makeCacheItem.
 					# $meta->{'bitrate'} = $format eq 'mp3' ? '128k' : '64k';
 					$meta->{'format'} = $format;
 					$meta->{'type'} = "$format";
-					$meta->{'url'} = $json->{'url'};
+					$meta->{'url'} = $json->{'link'};
 					$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
 					$meta->{'album'} = 'Mixcloud';
 					
