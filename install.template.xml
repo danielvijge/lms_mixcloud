@@ -9,7 +9,7 @@
   <defaultState>enabled</defaultState>
   <targetApplication>
     <id>SlimServer</id>
-    <minVersion>8.1</minVersion>
+    <minVersion>8.2</minVersion>
     <maxVersion>*</maxVersion>
   </targetApplication>
     <optionsURL>plugins/MixCloud/settings/basic.html</optionsURL>
