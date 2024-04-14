@@ -34,9 +34,14 @@ use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
 use constant USER_AGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0';
 use constant META_CACHE_TTL => 86400 * 30; # 24 hours x 30 = 30 days
 
+use constant EXEC => 'yt-dlp';
+use constant EXEC_OPTIONS => '--skip-download --dump-json';
+
 my $log   = logger('plugin.mixcloud');
 my $prefs = preferences('plugin.mixcloud');
 my $cache = Slim::Utils::Cache->new;
+
+my $bin_path;
 
 Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__);
 
@@ -143,7 +148,7 @@ sub getNextTrack {
 				$http->send_request( {
 					request     => HTTP::Request->new( GET => $meta->{'url'}, [ 'User-Agent' => USER_AGENT ] ),
 					onStream    => $meta->{format} eq 'mp3' 
-					               ? \&Slim::Utils::Scanner::Remote::parseAudioStream
+								   ? \&Slim::Utils::Scanner::Remote::parseAudioStream
 								   : \&Slim::Utils::Scanner::Remote::parseMp4Header,
 					onError     => sub {
 						my ($self, $error) = @_;
@@ -151,12 +156,12 @@ sub getNextTrack {
 						$successCb->();
 					},
 					passthrough => [ $song->track, 
-					                 { cb => sub {
+									 { cb => sub {
 										# See comments regarding bitrate and type in makeCacheItem.
 										# This line causes the actual bitrate of the stream to be cached.
 										$meta->{bitrate} = int($song->track->bitrate/1000) . 'kbps';
 										$cache->set('mixcloud_item_extra' . getId($url), $meta, META_CACHE_TTL);
-								        $successCb->(); 
+										$successCb->(); 
 									 }},
 									 $meta->{'url'} ],
 				} );
@@ -167,6 +172,19 @@ sub getNextTrack {
 	);
 }
 
+sub findExec {
+	my %paths = Slim::Utils::Misc::getBinPaths();
+
+	for my $path (%paths) {
+		if (index($path, 'MixCloud') != -1) {
+			$log->debug("Use bin path " . $path);
+			$bin_path = $path;
+			return;
+		}
+	}
+	$log->error("Error: Cannot find bin path for yt-dlp");
+}
+
 # complement track details (url, format, bitrate) using dmixcloud
 sub _fetchTrackExtra {
 	my ($url, $cb) = @_;
@@ -174,7 +192,7 @@ sub _fetchTrackExtra {
 	my $simpleMeta = $cache->get("mixcloud_item_$id") || {};
 	my $meta = $cache->get("mixcloud_item_extra_$id") || {};
 	
-	$log->debug("Getting complement for $url => $id");	
+	$log->debug("Getting complement for $url => $id");
 	
 	# we already have everything
 	if ($cache->{'url'} && $simpleMeta->{'updated_time'} eq $meta->{'updated_time'}) {
@@ -184,46 +202,50 @@ sub _fetchTrackExtra {
 	}
 	
 	my $mixcloud_url = "https://www.mixcloud.com/$id";
-	my $http = Slim::Networking::Async::HTTP->new;
-	
-	$log->info("Fetching complement with downloader $url $mixcloud_url");
-	
-	$http->send_request( {
-		request => HTTP::Request->new( POST => 'https://www.savelink.info/input', 
-		                               [ 'User-Agent' => USER_AGENT, 'X-Requested-With' => 'XMLHttpRequest', 'Content-Type' => 'application/x-www-form-urlencoded' ], 
-									   "url=$mixcloud_url" ),
-		Timeout => 30,
-		onBody  => sub {
-				my $content = shift->response->content;
-				my $json = eval { from_json($content) };
 
-				if ($json && $json->{'link'}) {
-					my $format = ($json->{'link'} =~ /.mp3/ ? "mp3" : "mp4");
-					# need to re-read from cache in case TrackDetails have been updated
-					$meta = $cache->get("mixcloud_item_$id") || {};
-					# See comments regarding bitrate and type in makeCacheItem.
-					# $meta->{'bitrate'} = $format eq 'mp3' ? '128k' : '64k';
-					$meta->{'format'} = $format;
-					$meta->{'type'} = "$format";
-					$meta->{'url'} = $json->{'link'};
-					$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
-					$meta->{'album'} = 'Mixcloud';
-					
-					$log->info("Got play URL $meta->{'url'} for $url from download");
-				} else {
-					$log->error("Empty response for play URL for $url", dump($json));
-				}	
-					
-				$cb->($meta) if $cb;
-		    },
-		onError => sub {
-				my ($self, $error) = @_;
-				$log->error("Error getting play URL for $url => $error");
-				$cb->() if $cb;
-			},
+	if ($bin_path eq "") {
+		findExec();
+	}
+	# use yt-dlp to extract stream URL
+	my $exec = $bin_path . '/' . EXEC;
+	if ($^O eq 'MSWin32') {
+		$exec = "$exec.exe";
+	}
+    my $exec_options = EXEC_OPTIONS;
+	my $yt_dlp_cmd = "$exec $exec_options $mixcloud_url";
+	$log->info("Executing helper binary: $yt_dlp_cmd");
+	my $info_json_str = `$yt_dlp_cmd`;
+	my $json = eval { from_json($info_json_str) };
+
+	if ($json) {
+		my $mixcloud_stream_url;
+		my $mixcloud_stream_formats = $json->{'formats'};
+
+		# we're interested in the format labelled 'http' and nothing else
+		foreach my $mixcloud_format (@$mixcloud_stream_formats) {
+			if ($mixcloud_format->{'format_id'} eq 'http'){
+					$mixcloud_stream_url = $mixcloud_format->{'url'};
+			}
 		}
-	);
-	
+
+		my $format = ($mixcloud_stream_url =~ /.mp3/ ? "mp3" : "mp4");
+		# need to re-read from cache in case TrackDetails have been updated
+		$meta = $cache->get("mixcloud_item_$id") || {};
+		# See comments regarding bitrate and type in makeCacheItem.
+		# $meta->{'bitrate'} = $format eq 'mp3' ? '128k' : '64k';
+		$meta->{'format'} = $format;
+		$meta->{'type'} = "$format";
+		$meta->{'url'} = $mixcloud_stream_url;
+		$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
+		$meta->{'album'} = 'Mixcloud';
+		
+		$log->info("Got play URL $meta->{'url'} for $url from download");
+	} else {
+		$log->error("Failed to determine stream URL for $url");
+	}    
+		
+	$cb->($meta) if $cb;
+
 	return $meta;
 }
 
@@ -236,7 +258,7 @@ sub getMetadataFor {
 	# this is ugly... for whatever reason the EN/Classic skins can't handle tracks with an items element
 	if ($args ne 'forceCurrent' && ($args->{params} && $args->{params}->{isWeb} && preferences('server')->get('skin')=~ /Classic|EN/i)) {
 		delete @$item{'items'};
-    } 
+	} 
 	
 	return $item if $item && $item->{'play'};
 	
@@ -431,8 +453,8 @@ sub makeCacheItem {
 	# this is ugly... for whatever reason the EN/Classic skins can't handle tracks with an items element
 	my $simpleTracks = (($args->{params} && $args->{params}->{isWeb} && preferences('server')->get('skin')=~ /Classic|EN/i) ? 1 : 0);
 	if (!$simpleTracks) {
-        $item->{'items'} = $trackInfo;
-    }
+		$item->{'items'} = $trackInfo;
+	}
 	
 	# Replace some fields if the call comes from Plugin.pm but do not cache.
 	if ($args->{params} && $args->{params}->{isPlugin}) {
@@ -445,8 +467,8 @@ sub makeCacheItem {
 		$item->{line1} = $json->{'name'} . ($duration ? ' (' . $duration . ')': '') .
 				($json->{'is_exclusive'} eq 1 ? (' (' . string('PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT') . ')') : ''),
 		$item->{line2} = $json->{'user'}->{'name'} . ($year ? ' (' . $year . ')' : ''),        
-    }
-    
+	}
+	
 	return $item;
 }
 

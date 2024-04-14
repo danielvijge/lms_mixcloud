@@ -22,4 +22,11 @@
 		[% END %]
 	[% END %]	
 
+	[% WRAPPER setting title="PLUGIN_MIXCLOUD_HELPER_APPLICATION" desc="PLUGIN_MIXCLOUD_HELPER_APPLICATION_DESC" %]
+		<input type="radio" id="bundled" checked /><label for="bundled">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_BUNDLED' | getstring %]</label><br/>
+		<input type="radio" id="system" disabled /><label for="system">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_SYSTEM' | getstring %]</label><br/>
+		<input type="radio" id="custom" disabled /><label for="custom">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM' | getstring %]</label><br/>
+		<input type="text" id="custom_path" disabled />
+	[% END %]
+
 [% PROCESS settings/footer.html %]

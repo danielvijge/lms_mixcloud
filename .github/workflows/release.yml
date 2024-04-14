@@ -12,10 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
-          persist-credentials: false
           fetch-depth: 0
+          lfs: true
 
       - name: Set version number (release build)
         if: contains(github.ref, 'refs/tags/')
@@ -31,58 +31,92 @@ jobs:
           echo "RELEASE_CHANNEL=dev" >> $GITHUB_ENV
           echo "FOLDER=dev-builds" >> $GITHUB_ENV
 
+      - name: Set yt-dlp version
+        run: |
+          echo "YT_VERSION=`cat yt-dlp.version`" >> $GITHUB_ENV
+
       - name: Test if release number matches x.y
         if: env.RELEASE_CHANNEL == 'release'
         run: |
           ! [[ ${{ env.VERSION }} =~ ^[0-9]+.[0-9]+$ ]] && echo "Release tag must be in the form of x.y." && exit 1 || echo "Release tag format is correct"
 
       - name: Create install XML file
-        uses: cuchi/jinja2-action@v1.2.0
+        uses: cuchi/jinja2-action@v1.2.2
         with:
           template: install.template.xml
           output_file: install.xml
           strict: true
 
-      - name: Build package
+      - name: Download yt-dlp binaries for Linux
         run: |
-          zip -r lms_mixcloud-${{ env.VERSION }}.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml
+          wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp -P Bin && chmod +x Bin/yt-dlp
       
-      - name: Save artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: lms_mixcloud-${{ env.VERSION }}.zip
-          path: lms_mixcloud-${{ env.VERSION }}.zip
-
-      - name: Calculate SHA
+      - name: Test yt-dlp operation with Mixcloud
         run: |
-          echo "SHA=$(shasum lms_mixcloud-${{ env.VERSION }}.zip | awk '{print $1;}')" >> $GITHUB_ENV
+          ./Bin/yt-dlp --skip-download --dump-json https://www.mixcloud.com/johndigweed/transitions-with-john-digweed-and-nickon-faith/ 1> /dev/null
+
+      - name: Download yt-dlp binaries for Windows and MacOS
+        #if: env.RELEASE_CHANNEL == 'release'
+        run: |
+          wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp.exe -P Bin
+          wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp_macos -P Bin && chmod +x Bin/yt-dlp_macos
+
+      - name: Build package for Linux
+        run: |
+          zip -r lms_mixcloud-${{ env.VERSION }}-linux.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp\.exe Bin/yt-dlp_macos
+      
+      - name: Build packages for Windows and MacOS
+        #if: env.RELEASE_CHANNEL == 'release'
+        run: |
+          zip -r lms_mixcloud-${{ env.VERSION }}-windows.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp Bin/yt-dlp_macos
+          rm Bin/yt-dlp && mv Bin/yt-dlp_macos Bin/yt-dlp
+          zip -r lms_mixcloud-${{ env.VERSION }}-macos.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp.exe
+
+      - name: Calculate SHA for Linux
+        run: |
+          echo "SHA_LINUX=$(shasum lms_mixcloud-${{ env.VERSION }}-linux.zip | awk '{print $1;}')" >> $GITHUB_ENV
+      
+      - name: Calculate SHA for Windows and MacOS
+        #if: env.RELEASE_CHANNEL == 'release'
+        run: |
+          echo "SHA_WINDOWS=$(shasum lms_mixcloud-${{ env.VERSION }}-windows.zip | awk '{print $1;}')" >> $GITHUB_ENV
+          echo "SHA_MACOS=$(shasum lms_mixcloud-${{ env.VERSION }}-macos.zip | awk '{print $1;}')" >> $GITHUB_ENV
 
       - name: Create dev channel public XML file
-        uses: cuchi/jinja2-action@v1.2.0
+        uses: cuchi/jinja2-action@v1.2.2
         with:
           template: public.template.xml
           output_file: public-dev.xml
           strict: true
+          variables: |
+            all_platforms=true
 
       - name: Create release public XML file
         if: env.RELEASE_CHANNEL == 'release'
-        uses: cuchi/jinja2-action@v1.2.0
+        uses: cuchi/jinja2-action@v1.2.2
         with:
           template: public.template.xml
           output_file: public.xml
           strict: true
+          variables: |
+            all_platforms=true
 
       - name: Switch branch, setup git for push
         run: |
           mv public*.xml /tmp
-          mv lms_mixcloud-${{ env.VERSION }}.zip /tmp
+          mv lms_mixcloud-${{ env.VERSION }}*.zip /tmp
           git checkout gh-pages
-          cp /tmp/lms_mixcloud-${{ env.VERSION }}.zip ${{ env.FOLDER }}/
           cp /tmp/public*.xml .
+          cp /tmp/lms_mixcloud-${{ env.VERSION }}*.zip ${{ env.FOLDER }}/
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add ${{ env.FOLDER }}/lms_mixcloud-${{ env.VERSION }}.zip
-          git commit -m "Github Actions release ${{ env.VERSION }}" -a
+          if [ "${{ env.RELEASE_CHANNEL }}" == "dev" ]; then
+            git add ${{ env.FOLDER }}/lms_mixcloud-${{ env.VERSION }}*.zip
+            COMMIT_MESSAGE_TYPE="development build"
+          else
+            COMMIT_MESSAGE_TYPE="release"
+          fi
+          git commit -m "Github Actions ${COMMIT_MESSAGE_TYPE} ${{ env.VERSION }}" -a
 
       - name: Push changes to gh-pages
         uses: ad-m/github-push-action@master
@@ -93,23 +127,15 @@ jobs:
       - name: Create release
         if: env.RELEASE_CHANNEL == 'release'
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ env.VERSION }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        if: env.RELEASE_CHANNEL == 'release'
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: lms_mixcloud-${{ env.VERSION }}.zip
-          asset_name: lms_mixcloud-${{ env.VERSION }}.zip
-          asset_content_type: application/zip
+          tag_name: ${{ github.ref }}
+          name: Release ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            lms_mixcloud-${{ env.VERSION }}-linux.zip
+            lms_mixcloud-${{ env.VERSION }}-windows.zip
+            lms_mixcloud-${{ env.VERSION }}-macos.zip

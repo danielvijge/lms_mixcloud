@@ -1,7 +1,7 @@
-# Mixcloud Plugin for Logitech Squeezebox media server #
+# Mixcloud Plugin for Lyrion Music Server #
 
-This is a Logitech Media Server (LMS) (a.k.a Squeezebox server) plugin to play
-tracks from Mixcloud. To install, use the settings page of Logitech Media server.
+This is a Lyrion Music Server (LMS) (a.k.a Squeezebox server) plugin to play
+tracks from Mixcloud. To install, use the settings page of Lyrion Music server.
 Go to the _Plugins_ tab, scroll down to _Third party source_ and select _Mixcloud_.
 Press the _Apply_ button and restart LMS.
 
@@ -18,8 +18,8 @@ For the development version (updated with every commit), include
 
     https://danielvijge.github.io/lms_mixcloud/public-dev.xml
 
-This Plugin is in Alpha stage and build from the SqueezeCloud Plugin (thanks to the developers), because the documentation
-of the LMS Server is very bad and Perl still sucks.
+Development builds are only available for Linux. Regular builds are released for Linux,
+Windows, and MacOS.
 
 ## Licence ##
 
