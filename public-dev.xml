@@ -3,28 +3,28 @@
     <title lang="EN">Mixcloud Plugin</title>
   </details>
   <plugins>
-    <plugin name="MixCloud" version="0.10.1" minTarget="8.2" maxTarget="*" target="unix">
+    <plugin name="MixCloud" version="0.10.2" minTarget="8.2" maxTarget="*" target="unix">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
-      <url>https://danielvijge.github.io/lms_mixcloud/dev-builds/lms_mixcloud-0.10.1-linux.zip</url>
+      <url>https://danielvijge.github.io/lms_mixcloud/dev-builds/lms_mixcloud-0.10.2-linux.zip</url>
       <link>https://github.com/danielvijge/lms_mixcloud</link>
-      <sha>a370ffbc195892cc6cbcbf287afc9c9dcd7a38cf</sha>
+      <sha>5cabec2cba5c47b17d40d59c8af2b5306ebdbdea</sha>
       <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     </plugin>
-    <plugin name="MixCloud" version="0.10.1" minTarget="8.2" maxTarget="*" target="mac">
+    <plugin name="MixCloud" version="0.10.2" minTarget="8.2" maxTarget="*" target="mac">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
-      <url>https://github.com/danielvijge/lms_mixcloud/releases/download/0.10.1/lms_mixcloud-0.10.1-windows.zip</url>
+      <url>https://github.com/danielvijge/lms_mixcloud/releases/download/0.10.2/lms_mixcloud-0.10.2-windows.zip</url>
       <link>https://github.com/danielvijge/lms_mixcloud</link>
-      <sha>9a9205b0a19acd0dc17f0e641548926b4c0d5034</sha>
+      <sha>23b8fb15acfb79d56cc6c765b30480dae753d1ce</sha>
       <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     </plugin>
-    <plugin name="MixCloud" version="0.10.1" minTarget="8.2" maxTarget="*" target="win">
+    <plugin name="MixCloud" version="0.10.2" minTarget="8.2" maxTarget="*" target="win">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
-      <url>https://github.com/danielvijge/lms_mixcloud/releases/download/0.10.1/lms_mixcloud-0.10.1-macos.zip</url>
+      <url>https://github.com/danielvijge/lms_mixcloud/releases/download/0.10.2/lms_mixcloud-0.10.2-macos.zip</url>
       <link>https://github.com/danielvijge/lms_mixcloud</link>
-      <sha>d3e4129c58c493db3dca617a2be4a3dbb2ae5e3f</sha>
+      <sha>69cd0bcdbf5071db62a9c739b3b375a197907a57</sha>
       <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     </plugin>
   </plugins>
