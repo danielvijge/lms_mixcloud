@@ -242,7 +242,9 @@ sub _fetchTrackExtra {
 		$log->info("Got play URL $meta->{'url'} for $url from download");
 	} else {
 		$log->error("Failed to determine stream URL for $url");
-	}    
+		$log->error("Tried to execure command: $yt_dlp_cmd");
+		$log->error("$info_json_str");
+	}
 		
 	$cb->($meta) if $cb;
 
