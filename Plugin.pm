@@ -42,7 +42,7 @@ my $log = Slim::Utils::Log->addLogCategory({
 	'description'  => string('PLUGIN_MIXCLOUD'),
 });
 
-$prefs->init({ apiKey => "", playformat => "mp4", useBuffered => 1 });
+$prefs->init({ apiKey => "", playformat => "mp4", useBuffered => 1, helper_application => 'bundled', helper_application_custom_path => "" });
 
 sub getToken {
 	my ($callback) = shift;

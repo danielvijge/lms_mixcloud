@@ -41,8 +41,6 @@ my $log   = logger('plugin.mixcloud');
 my $prefs = preferences('plugin.mixcloud');
 my $cache = Slim::Utils::Cache->new;
 
-my $bin_path;
-
 Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__);
 
 sub isPlaylistURL { 0 }
@@ -173,19 +171,33 @@ sub getNextTrack {
 }
 
 sub findExec {
-	my %paths = Slim::Utils::Misc::getBinPaths();
-
-	for my $path (%paths) {
-		if (index($path, 'MixCloud') != -1) {
-			$log->debug("Use bin path " . $path);
-			$bin_path = $path;
-			return;
-		}
+	my $exec = EXEC;
+	if ($^O eq 'MSWin32') {
+		$exec = "$exec.exe";
 	}
-	$log->error("Error: Cannot find bin path for yt-dlp");
+	if ($prefs->get('helper_application') eq 'custom') {
+		if ($prefs->get('helper_application_custom_path') eq '') {
+			return $exec;
+		}
+		else {
+			return $prefs->get('helper_application_custom_path');
+		}
+		return
+	}
+	else {
+		my %paths = Slim::Utils::Misc::getBinPaths();
+
+		for my $path (%paths) {
+			if (index($path, 'MixCloud') != -1) {
+				$log->debug("Use bin path $path/$exec");
+				return "$path/$exec";
+			}
+		}
+		$log->error("Error: Cannot find bin path for yt-dlp");
+	}
 }
 
-# complement track details (url, format, bitrate) using dmixcloud
+# complement track details (url, format, bitrate)
 sub _fetchTrackExtra {
 	my ($url, $cb) = @_;
 	my $id = getId($url);
@@ -203,14 +215,8 @@ sub _fetchTrackExtra {
 	
 	my $mixcloud_url = "https://www.mixcloud.com/$id";
 
-	if ($bin_path eq "") {
-		findExec();
-	}
 	# use yt-dlp to extract stream URL
-	my $exec = $bin_path . '/' . EXEC;
-	if ($^O eq 'MSWin32') {
-		$exec = "$exec.exe";
-	}
+	my $exec = findExec();
     my $exec_options = EXEC_OPTIONS;
 	my $yt_dlp_cmd = "$exec $exec_options $mixcloud_url 2>&1"; # pipe STDERR to STDOUT
 	$log->info("Executing helper binary: $yt_dlp_cmd");

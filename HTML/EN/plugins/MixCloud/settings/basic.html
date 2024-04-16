@@ -23,10 +23,9 @@
 	[% END %]	
 
 	[% WRAPPER setting title="PLUGIN_MIXCLOUD_HELPER_APPLICATION" desc="PLUGIN_MIXCLOUD_HELPER_APPLICATION_DESC" %]
-		<input type="radio" id="bundled" checked /><label for="bundled">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_BUNDLED' | getstring %]</label><br/>
-		<input type="radio" id="system" disabled /><label for="system">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_SYSTEM' | getstring %]</label><br/>
-		<input type="radio" id="custom" disabled /><label for="custom">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM' | getstring %]</label><br/>
-		<input type="text" id="custom_path" disabled />
+		<input type="radio" class="stdedit" name="pref_helper_application" id="helper_application_bundled" value="bundled"[% IF prefs.helper_application == 'bundled' %] checked="checked"[% END %] /><label for="helper_application_bundled">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_BUNDLED' | getstring %]</label><br/>
+		<input type="radio" class="stdedit" name="pref_helper_application" id="helper_application_custom" value="custom"[% IF prefs.helper_application == 'custom' %] checked="checked"[% END %] /><label for="helper_application_custom">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM' | getstring %]</label><br/>
+		[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM_PATH' | getstring %]: <input type="text" class="stdedit" name="pref_helper_application_custom_path" id="helper_application_custom_path" value="[% prefs.helper_application_custom_path %]" size="40" />
 	[% END %]
 
 [% PROCESS settings/footer.html %]

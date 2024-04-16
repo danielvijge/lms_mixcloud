@@ -22,7 +22,7 @@ sub page {
 sub prefs {
 	my $class = shift;
 	# playformat not used for now
-	my @prefs = ( preferences('plugin.mixcloud'), qw(apiKey) );
+	my @prefs = ( preferences('plugin.mixcloud'), qw(apiKey), qw(helper_application), qw(helper_application_custom_path) );
 	push @prefs, qw(useBuffered) unless Slim::Player::Protocols::HTTP->can('canEnhanceHTTP');
 	return @prefs;
 }
