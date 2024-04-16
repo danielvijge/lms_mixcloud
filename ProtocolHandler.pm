@@ -212,7 +212,7 @@ sub _fetchTrackExtra {
 		$exec = "$exec.exe";
 	}
     my $exec_options = EXEC_OPTIONS;
-	my $yt_dlp_cmd = "$exec $exec_options $mixcloud_url";
+	my $yt_dlp_cmd = "$exec $exec_options $mixcloud_url 2>&1"; # pipe STDERR to STDOUT
 	$log->info("Executing helper binary: $yt_dlp_cmd");
 	my $info_json_str = `$yt_dlp_cmd`;
 	my $json = eval { from_json($info_json_str) };
