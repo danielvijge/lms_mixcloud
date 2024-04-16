@@ -31,7 +31,7 @@ use Scalar::Util qw(blessed);
 use Slim::Utils::Strings qw(string cstring);
 
 use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
-use constant USER_AGENT => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0';
+use constant USER_AGENT => 'Mozilla/5.0 (X11; Linux x86_64; rv:124.0; SlimServer) Gecko/20100101 Firefox/124.0';
 use constant META_CACHE_TTL => 86400 * 30; # 24 hours x 30 = 30 days
 
 use constant EXEC => 'yt-dlp';
@@ -105,7 +105,7 @@ sub new {
 sub requestString {
 	my $self = shift;
 	my $request = $self->SUPER::requestString(@_);
-	my $ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:56.0; SlimServer) Gecko/20100101 Firefox/56.0";
+	my $ua = USER_AGENT;
 
 	$request =~ s/(User-Agent:)\s*.*/\1: $ua/;
 	$request =~ s/Icy-MetaData:.+$CRLF//m;
