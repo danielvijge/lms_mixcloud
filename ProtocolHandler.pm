@@ -358,9 +358,7 @@ sub makeCacheItem {
 	}
 	
 	my $year;
-	if ($json->{'updated_time'}) {
-		$year = substr $json->{'updated_time'}, 0 , 4;
-	} elsif ($json->{'created_time'}) {
+	if ($json->{'created_time'}) {
 		$year = substr $json->{'created_time'}, 0, 4;
 	}
 	
