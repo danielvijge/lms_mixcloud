@@ -27,7 +27,7 @@ jobs:
       - name: Set version number (development build)
         if: "!contains(github.ref, 'refs/tags/')"
         run: |
-          echo "VERSION=`git describe --tags --abbrev=0`.`git rev-list $(git describe --tags --abbrev=0)..HEAD --count`" >> $GITHUB_ENV
+          echo "VERSION=`git describe --tags --abbrev=0`.`git rev-list $(git describe --tags --abbrev=0)..HEAD --count`-dev" >> $GITHUB_ENV
           echo "RELEASE_CHANNEL=dev" >> $GITHUB_ENV
           echo "FOLDER=dev-builds" >> $GITHUB_ENV
 
@@ -56,7 +56,7 @@ jobs:
           ./Bin/yt-dlp --skip-download --dump-json https://www.mixcloud.com/johndigweed/transitions-with-john-digweed-and-nickon-faith/ 1> /dev/null
 
       - name: Download yt-dlp binaries for Windows and MacOS
-        #if: env.RELEASE_CHANNEL == 'release'
+        if: env.RELEASE_CHANNEL == 'release'
         run: |
           wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp.exe -P Bin
           wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp_macos -P Bin && chmod +x Bin/yt-dlp_macos
@@ -66,7 +66,7 @@ jobs:
           zip -r lms_mixcloud-${{ env.VERSION }}-linux.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp\.exe Bin/yt-dlp_macos
       
       - name: Build packages for Windows and MacOS
-        #if: env.RELEASE_CHANNEL == 'release'
+        if: env.RELEASE_CHANNEL == 'release'
         run: |
           zip -r lms_mixcloud-${{ env.VERSION }}-windows.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp Bin/yt-dlp_macos
           rm Bin/yt-dlp && mv Bin/yt-dlp_macos Bin/yt-dlp
@@ -77,7 +77,7 @@ jobs:
           echo "SHA_LINUX=$(shasum lms_mixcloud-${{ env.VERSION }}-linux.zip | awk '{print $1;}')" >> $GITHUB_ENV
       
       - name: Calculate SHA for Windows and MacOS
-        #if: env.RELEASE_CHANNEL == 'release'
+        if: env.RELEASE_CHANNEL == 'release'
         run: |
           echo "SHA_WINDOWS=$(shasum lms_mixcloud-${{ env.VERSION }}-windows.zip | awk '{print $1;}')" >> $GITHUB_ENV
           echo "SHA_MACOS=$(shasum lms_mixcloud-${{ env.VERSION }}-macos.zip | awk '{print $1;}')" >> $GITHUB_ENV
@@ -88,8 +88,8 @@ jobs:
           template: public.template.xml
           output_file: public-dev.xml
           strict: true
-          variables: |
-            all_platforms=true
+          # variables: |
+          #   all_platforms=true
 
       - name: Create release public XML file
         if: env.RELEASE_CHANNEL == 'release'

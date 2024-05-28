@@ -17,7 +17,7 @@
       <sha>{{ env['SHA_LINUX'] }}</sha>
       <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     </plugin>
-{%- if all_platforms == "true" %}
+{%- if all_platforms is defined and all_platforms == "true" %}
     <plugin name="MixCloud" version="{{ env['VERSION'] }}" minTarget="8.2" maxTarget="*" target="mac">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
