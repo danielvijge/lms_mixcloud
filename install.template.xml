@@ -14,5 +14,5 @@
   </targetApplication>
     <optionsURL>plugins/MixCloud/settings/basic.html</optionsURL>
     <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
-    <email>spam+squeezebox@vijge.net</email>
+    <homepageURL>https://github.com/danielvijge/lms_mixcloud</homepageURL>
 </extension>

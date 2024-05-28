@@ -5,7 +5,7 @@ MIXCLOUD
 	EN	Mixcloud
 
 PLUGIN_MIXCLOUD_DESC
-	EN	Play music from Mixcloud.
+	EN	Play music from Mixcloud
 
 PLUGIN_MIXCLOUD_HOT
 	EN	Hot Mixes
