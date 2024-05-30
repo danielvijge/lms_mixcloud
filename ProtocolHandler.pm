@@ -30,9 +30,9 @@ use Slim::Utils::Cache;
 use Scalar::Util qw(blessed);
 use Slim::Utils::Strings qw(string cstring);
 
-use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m)\.mixcloud\.com/};
+use constant PAGE_URL_REGEXP => qr{^https?://(?:www|m|stream(?:\d)*|audio(?:\d)*)\.mixcloud\.com/};
 use constant USER_AGENT => 'Mozilla/5.0 (X11; Linux x86_64; rv:124.0; SlimServer) Gecko/20100101 Firefox/124.0';
-use constant META_CACHE_TTL => 86400 * 30; # 24 hours x 30 = 30 days
+use constant META_CACHE_TTL => 1; #86400 * 30; # 24 hours x 30 = 30 days
 
 use constant EXEC => 'yt-dlp';
 use constant EXEC_OPTIONS => '--skip-download --dump-json';
@@ -108,8 +108,9 @@ sub requestString {
 	$request =~ s/(User-Agent:)\s*.*/\1: $ua/;
 	$request =~ s/Icy-MetaData:.+$CRLF//m;
 
+	$log->debug("Request after modification: $request");
+
 	return $request; 
-	
 }
 
 sub explodePlaylist {
@@ -145,9 +146,9 @@ sub getNextTrack {
 				my $http = Slim::Networking::Async::HTTP->new;
 				$http->send_request( {
 					request     => HTTP::Request->new( GET => $meta->{'url'}, [ 'User-Agent' => USER_AGENT ] ),
-					onStream    => $meta->{format} eq 'mp3' 
-								   ? \&Slim::Utils::Scanner::Remote::parseAudioStream
-								   : \&Slim::Utils::Scanner::Remote::parseMp4Header,
+					onStream    => $meta->{format} eq 'mp4' 
+								   ? \&Slim::Utils::Scanner::Remote::parseMp4Header
+								   : \&Slim::Utils::Scanner::Remote::parseAudioStream,
 					onError     => sub {
 						my ($self, $error) = @_;
 						$log->error( "could not find $meta->{'url'} header with format $meta->{'format'} $error" );
@@ -229,12 +230,24 @@ sub _fetchTrackExtra {
 
 		# we're interested in the format labelled 'http' and nothing else
 		foreach my $mixcloud_format (@$mixcloud_stream_formats) {
-			if ($mixcloud_format->{'format_id'} eq 'http'){
+			if ($mixcloud_format->{'format_id'} eq 'hls-192' && $prefs->get('streamingQuality_hls_192')) {
+					$log->debug("Found HSL-192 stream for $url");
+					$mixcloud_stream_url = $mixcloud_format->{'url'};
+			}
+			elsif ($mixcloud_format->{'format_id'} eq 'http') {
+					$log->debug("Found http stream for $url");
 					$mixcloud_stream_url = $mixcloud_format->{'url'};
 			}
 		}
 
-		my $format = ($mixcloud_stream_url =~ /.mp3/ ? "mp3" : "mp4");
+		unless ($mixcloud_stream_url) {
+			$log->error("Could not get HLS-192 or HTTP stream for $url");
+			$log->error("Response from yt-dlp:");
+			$log->error("$info_json_str");
+			return;
+		}
+
+		my $format = ($mixcloud_stream_url =~ /.m3u8/ ? "m3u8" : ($mixcloud_stream_url =~ /.mp3/ ? "mp3" : "mp4"));
 		# need to re-read from cache in case TrackDetails have been updated
 		$meta = $cache->get("mixcloud_item_$id") || {};
 		# See comments regarding bitrate and type in makeCacheItem.
@@ -254,6 +267,8 @@ sub _fetchTrackExtra {
 		
 	$cb->($meta) if $cb;
 
+	use Data::Dumper;
+	$log->error(Dumper($meta));
 	return $meta;
 }
 
