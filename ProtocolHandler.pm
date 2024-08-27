@@ -172,25 +172,21 @@ sub getNextTrack {
 
 sub findExec {
 	my $exec = EXEC;
+	my $pathSeparator = '/';
 	if ($^O eq 'MSWin32') {
 		$exec = "$exec.exe";
+		$pathSeparator = '\\';
 	}
-	if ($prefs->get('helper_application') eq 'custom') {
-		if ($prefs->get('helper_application_custom_path') eq '') {
-			return $exec;
-		}
-		else {
-			return $prefs->get('helper_application_custom_path');
-		}
-		return
+	if ($prefs->get('helper_application') eq 'custom' && $prefs->get('helper_application_custom_path') ne '') {
+		return $prefs->get('helper_application_custom_path');
 	}
 	else {
 		my %paths = Slim::Utils::Misc::getBinPaths();
 
 		for my $path (%paths) {
 			if (index($path, 'MixCloud') != -1) {
-				$log->debug("Use bin path $path/$exec");
-				return "$path/$exec";
+				$log->debug("Use bin path $path$pathSeparator$exec");
+				return "$path$pathSeparator$exec";
 			}
 		}
 		$log->error("Error: Cannot find bin path for yt-dlp");
