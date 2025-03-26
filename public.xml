@@ -13,7 +13,7 @@
       <sha>60888cedfc906a4273531902a8e103c69167e0eb</sha>
       <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     </plugin>
-    <plugin name="MixCloud" version="0.11" minTarget="8.2" maxTarget="*" target="mac">
+    <plugin name="MixCloud" version="0.11" minTarget="8.2" maxTarget="*" target="win">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
       <category>musicservices</category>
@@ -23,7 +23,7 @@
       <sha>0056c1725e14f98c16cbd9b069f8a11819e344e1</sha>
       <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
     </plugin>
-    <plugin name="MixCloud" version="0.11" minTarget="8.2" maxTarget="*" target="win">
+    <plugin name="MixCloud" version="0.11" minTarget="8.2" maxTarget="*" target="mac">
       <title lang="EN">Mixcloud</title>
       <desc lang="EN">Play music from Mixcloud</desc>
       <category>musicservices</category>
