@@ -155,13 +155,13 @@ PLUGIN_MIXCLOUD_HELPER_APPLICATION
 	EN	Helper application
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_DESC
-	EN	This plugin uses a helper application to get a playable stream from Mixcloud. By default a bundled version of <code>yt-dlp</code> is used. Select between the bundled version of <code>yt-dlp</code>, or a custom one. If <code>yt-dlp</code> is available in <code>$PATH</code> the path field can be left empty, else enter the full path to the help application.
+	EN	This plugin uses a helper application to get a playable stream from Mixcloud. By default a bundled version of <code>yt-dlp</code> is used. Select between the bundled version of <code>yt-dlp</code>, or a custom one. If <code>yt-dlp</code> is available in <code>$PATH</code> the path field can be left empty, else enter the name of a command on <code>$PATH</code>, or the full path to the helper application.
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_BUNDLED
 	EN	Use bundled helper application
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM
-	EN	Use custom helper application
+	EN	Use system/custom helper application
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM_PATH
-	EN	Full path
+	EN	Command/full path
