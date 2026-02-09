@@ -394,34 +394,6 @@ sub makeCacheItem {
 		url  => \&Plugins::MixCloud::Plugin::tracksHandler,
 		passthrough => [ { params => substr($json->{'user'}->{'key'},1) , type => 'user', parser => \&Plugins::MixCloud::Plugin::_parseUser } ]
 	} if $json->{'user'}->{'key'};
-
-	push @$trackInfo, {
-		type => 'link',
-		name => string('PLUGIN_MIXCLOUD_FAVORITE') . ' ' . string('PLUGIN_MIXCLOUD_TRACK'),
-		url  => \&Plugins::MixCloud::Plugin::favoriteTrack,
-		passthrough => [ { key => $json->{'key'}, type => 'text' } ]
-	} if ($json->{'favorited'} =~ /0/);
-
-	push @$trackInfo, {
-		type => 'link',
-		name => string('PLUGIN_MIXCLOUD_UNFAVORITE') . ' ' . string('PLUGIN_MIXCLOUD_TRACK'),
-		url  => \&Plugins::MixCloud::Plugin::unfavoriteTrack,
-		passthrough => [ { key => $json->{'key'}, type => 'text' } ]
-	} if ($json->{'favorited'} =~ /1/);
-	
-	push @$trackInfo, {
-		type => 'link',
-		name => string('PLUGIN_MIXCLOUD_REPOST') . ' ' . string('PLUGIN_MIXCLOUD_TRACK'),
-		url  => \&Plugins::MixCloud::Plugin::repostTrack,
-		passthrough => [ { key => $json->{'key'}, type => 'text' } ]
-	} if ($json->{'reposted'} =~ /0/);
-
-	push @$trackInfo, {
-		type => 'link',
-		name => string('PLUGIN_MIXCLOUD_UNREPOST') . ' ' . string('PLUGIN_MIXCLOUD_TRACK'),
-		url  => \&Plugins::MixCloud::Plugin::unrepostTrack,
-		passthrough => [ { key => $json->{'key'}, type => 'text' } ]
-	} if ($json->{'reposted'} =~ /1/);
 	
 	if (defined $json->{'pictures'}->{'large'}) {
 		$icon = $json->{'pictures'}->{'large'};
