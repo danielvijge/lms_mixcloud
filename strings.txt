@@ -5,163 +5,189 @@ MIXCLOUD
 	EN	Mixcloud
 
 PLUGIN_MIXCLOUD_DESC
+	CS	Přehrávejte hudbu z Mixcloudu
 	EN	Play music from Mixcloud
 
-PLUGIN_MIXCLOUD_HOT
-	EN	Hot Mixes
-
 PLUGIN_MIXCLOUD_POPULAR
+	CS	Oblíbené mixy
 	EN	Popular Mixes
 
 PLUGIN_MIXCLOUD_LATEST
+	CS	Nejnovější mixy
 	EN	Latest Mixes
 
-PLUGIN_MIXCLOUD_CATEGORIES
-	EN	Categories
-
-PLUGIN_MIXCLOUD_CATEGORY
-	EN	Category
-
-PLUGIN_MIXCLOUD_NEW
-	EN	New Mixes
-
 PLUGIN_MIXCLOUD_URL
+	CS	Adresa URL Mixcloudu
 	EN	Mixcloud URL
 
 PLUGIN_MIXCLOUD_FAVORITES
+	CS	Oblíbené
 	EN	Favorites
 
 PLUGIN_MIXCLOUD_FOLLOWING
+	CS	Sleduji
 	EN	Following
-	
+
 PLUGIN_MIXCLOUD_CLOUDCASTS
+	CS	Skladby
 	EN	Tracks
 
 PLUGIN_MIXCLOUD_SEARCH
+	CS	Vyhledat mixy
 	EN	Search Mixes
 
 PLUGIN_MIXCLOUD_MYSEARCH
+	CS	Vyhledat
 	EN	Search
 
 PLUGIN_MIXCLOUD_SEARCH_USER
+	CS	Vyhledat uživatele
 	EN	Search User
 
 PLUGIN_MIXCLOUD_MYMIXCLOUD
+	CS	Můj Mixcloud
 	EN	My Mixcloud
 
 PLUGIN_MIXCLOUD_TAGS
+	CS	Vyhledat značky
 	EN	Search Tags
 
 PLUGIN_MIXCLOUD_APIKEY
+	CS	Klíč API Mixcloudu
 	EN	Mixcloud API key
 
 PLUGIN_MIXCLOUD_APIKEY_DESC
+	CS	Připojte se ke svému účtu Mixcloudu pro přístup k vašim vlastním skladbám, oblíbeným a sledovaným uživatelům.
 	EN	Connect to your Mixcloud account to access your own tracks, favorites, and users you are following.
 
-PLUGIN_MIXCLOUD_PLAYMETHOD
-	EN	Stream format
+PLUGIN_MIXCLOUD_APIKEY_LINK
+	CS	Získejte svůj API klíč pro Mixcloud na mixcloud.com
+	EN	Get your API key for Mixcloud at mixcloud.com
 
-PLUGIN_MIXCLOUD_PLAYMETHOD_DESC
-	EN	All tracks are available in MP4 format, and selecting a track is fast. However, MP4 does not work natively on old Squeezebox models, and must be transcoded for those players. MP3 has a better sound quality, but loading a track takes a long time, and not all tracks are available in MP3 format.
-	
 PLUGIN_MIXCLOUD_USEBUFFERED
+	CS	Ukládat vyrovnávací paměť datových proudů do systémového dočasného adresáře
 	EN	Buffer streams in system's temp directory
 
 PLUGIN_MIXCLOUD_USEBUFFERED_DESC
+	CS	MixCloud server nemá rád velmi dlouhé streamingové relace. Tato volba stáhne soubor co nejrychleji do systémového dočasného adresáře a spojení ukončí. Použitý diskový prostor je po skončení skladeb uvolněn.
 	EN	MixCloud server does not like very long streaming sessions. This option downloads the file as quickly as possible in the system's temp directory and closes the connection. Used disk spaced is released when songs end.
-	
+
 PLUGIN_MIXCLOUD_STREAM_FAILED
+	CS	Chyba připojení
 	EN	Connection error
 
-PLUGIN_MIXCLOUD_FOLLOW
-	EN	Follow
-	
-PLUGIN_MIXCLOUD_UNFOLLOW
-	EN	Unfollow
-	
-PLUGIN_MIXCLOUD_FOLLOWED
-	EN	Followed
-	
-PLUGIN_MIXCLOUD_UNFOLLOWED
-	EN	Unfollowed
-	
-PLUGIN_MIXCLOUD_USER
-	EN	User
-	
-PLUGIN_MIXCLOUD_NOT_FOUND
-	EN	Not Found
-	
-PLUGIN_MIXCLOUD_FAVORITE
-	EN	Favorite
+PLUGIN_MIXCLOUD_FOLLOW_USER
+	CS	Sledovat uživatele
+	EN	Follow User
 
-PLUGIN_MIXCLOUD_UNFAVORITE
-	EN	Unfavorite
-	
+PLUGIN_MIXCLOUD_UNFOLLOW_USER
+	CS	Přestat sledovat uživatele
+	EN	Unfollow User
+
+PLUGIN_MIXCLOUD_USER_FOLLOWED
+	CS	Uživatel sledován
+	EN	User Followed
+
+PLUGIN_MIXCLOUD_USER_UNFOLLOWED
+	CS	Uživatel přestal být sledován
+	EN	User Unfollowed
+
+PLUGIN_MIXCLOUD_USER_FOLLOW_NOT_FOUND
+	CS	Sledování uživatele nenalezeno
+	EN	User Follow Not Found
+
+PLUGIN_MIXCLOUD_USER_NOT_FOUND
+	CS	Uživatel nenalezen
+	EN	User Not Found
+
+PLUGIN_MIXCLOUD_FAVORITE_TRACK
+	CS	Oblíbit skladbu
+	EN	Favorite Track
+
+PLUGIN_MIXCLOUD_UNFAVORITE_TRACK
+	CS	Odebrat skladbu z oblíbených
+	EN	Unfavorite Track
+
+PLUGIN_MIXCLOUD_FAVORITE_NOT_FOUND
+	CS	Oblíbená nenalezena
+	EN	Favorite Not Found
+
 PLUGIN_MIXCLOUD_FAVORITED
+	CS	Přídáno k oblíbeným
 	EN	Favorited
 
 PLUGIN_MIXCLOUD_UNFAVORITED
+	CS	Odebráno z oblíbených
 	EN	Unfavorited
-	
-PLUGIN_MIXCLOUD_TRACK
-	EN	Track
-	
-PLUGIN_MIXCLOUD_LIKE
-	EN	Like
-	
-PLUGIN_MIXCLOUD_UNLIKE
-	EN	Unlike
 
-PLUGIN_MIXCLOUD_LIKED
-	EN	Liked
-	
-PLUGIN_MIXCLOUD_UNLIKED
-	EN	Unliked
-	
-PLUGIN_MIXCLOUD_REPOST
-	EN	Repost
-	
-PLUGIN_MIXCLOUD_UNREPOST
-	EN	Undo Repost
+PLUGIN_MIXCLOUD_TRACK_NOT_FOUND
+	CS	Skladba nenalezena
+	EN	Track Not Found
+
+PLUGIN_MIXCLOUD_REPOST_NOT_FOUND
+	CS	Přeposlání nenalezeno
+	EN	Repost Not Found
+
+PLUGIN_MIXCLOUD_REPOST_TRACK
+	CS	Přeposlat skladbu
+	EN	Repost Track
+
+PLUGIN_MIXCLOUD_UNREPOST_TRACK
+	CS	Zrušit přeposlání skladby
+	EN	Undo Repost Track
 
 PLUGIN_MIXCLOUD_REPOSTED
+	CS	Přeposláno
 	EN	Reposted
-	
+
 PLUGIN_MIXCLOUD_UNREPOSTED
+	CS	Přeposlání zrušeno
 	EN	Repost Undone
-	
+
 PLUGIN_MIXCLOUD_LINK
+	CS	Odkaz
 	EN	Link
 
 PLUGIN_MIXCLOUD_EXCLUSIVE
+	CS	Exkluzivní
 	EN	Exclusive
 
 PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT
+	CS	Exkl.
 	EN	Excl.
-	
+
 PLUGIN_MIXCLOUD_TRUE
+	CS	Ano
 	EN	Yes
-	
+
 PLUGIN_MIXCLOUD_FALSE
+	CS	Ne
 	EN	No
-	
-PLUGIN_MIXCLOUD_MUSIC
-	EN	Music
-	
-PLUGIN_MIXCLOUD_TALK
-	EN	Talk
+
+PLUGIN_MIXCLOUD_MUSIC_CATEGORIES
+	CS	Kategorie hudby
+	EN	Music Categories
+
+PLUGIN_MIXCLOUD_TALK_CATEGORIES
+	CS	Kategorie rozhovorů
+	EN	Talk Categories
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION
+	CS	Pomocná aplikace
 	EN	Helper application
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_DESC
+	CS	Tento plugin používá pomocnou aplikaci pro získání přehratelného datového proudu z Mixcloudu. Jako výchozí je použit zabalený <code>yt-dlp</code>. Vyberte mezi zabalenou verzí <code>yt-dlp</code> nebo vlastní. Pokud je <code>yt-dlp</code> dostupný v <code>$PATH</code>, pole cesty lze nechat prázdné, jinak zadejte úplnou cestu k pomocné aplikaci.
 	EN	This plugin uses a helper application to get a playable stream from Mixcloud. By default a bundled version of <code>yt-dlp</code> is used. Select between the bundled version of <code>yt-dlp</code>, or a custom one. If <code>yt-dlp</code> is available in <code>$PATH</code> the path field can be left empty, else enter the full path to the help application.
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_BUNDLED
+	CS	Použít zabalenou pomocnou aplikaci
 	EN	Use bundled helper application
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM
+	CS	Použít vlastní pomocnou aplikaci
 	EN	Use custom helper application
 
 PLUGIN_MIXCLOUD_HELPER_APPLICATION_CUSTOM_PATH
+	CS	Úplná cesta
 	EN	Full path

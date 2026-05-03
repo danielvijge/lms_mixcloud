@@ -12,7 +12,7 @@
     <minVersion>8.2</minVersion>
     <maxVersion>*</maxVersion>
   </targetApplication>
-    <optionsURL>plugins/MixCloud/settings/basic.html</optionsURL>
-    <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
-    <homepageURL>https://github.com/danielvijge/lms_mixcloud</homepageURL>
+  <optionsURL>plugins/MixCloud/settings/basic.html</optionsURL>
+  <creator>Christian Mueller, Daniel Vijge, KwarkLabs</creator>
+  <homepageURL>https://github.com/danielvijge/lms_mixcloud</homepageURL>
 </extension>
