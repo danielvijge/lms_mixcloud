@@ -29,7 +29,7 @@ sub prefs {
 
 sub handler {
 	my ($class, $client, $params) = @_;
-	$params->{"pref_useBuffered"} = 0 unless defined $params->{"pref_useBuffered"};	
+	$params->{"pref_useBuffered"} = 0 unless defined $params->{"pref_useBuffered"};
 	return $class->SUPER::handler( $client, $params );
 }
 
