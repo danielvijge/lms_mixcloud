@@ -22,6 +22,7 @@ use File::Spec::Functions qw(:ALL);
 use List::Util qw(min max);
 use Date::Parse;
 use Data::Dump qw(dump);
+use HTTP::Request;
 
 use Slim::Utils::Strings qw(string cstring);
 use Slim::Utils::Prefs;
@@ -49,6 +50,12 @@ sub getToken {
 	if ($prefs->get('apiKey')) {
 		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=https://danielvijge.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
 		$log->debug("gettokenurl: ".$tokenurl);
+		my $request = HTTP::Request->new( 'GET' => $tokenurl );
+		$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
+		my $params->{request} = $request;
+		my %headers;
+		$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
+		
 		Slim::Networking::SimpleAsyncHTTP->new(			
 				sub {
 					my $http = shift;				
@@ -62,8 +69,9 @@ sub getToken {
 				sub {
 					$log->error("Error: $_[1]");
 					$callback->({});
-				},			
-		)->get($tokenurl);
+				},
+				$params
+		)->get($tokenurl, %headers);
 	}else{
 		$callback->({});	
 	}
@@ -154,14 +162,14 @@ sub tracksHandler {
 	my $queryUrl;
 	if ($quantity == 1) {
         $queryUrl = "$method://api.mixcloud.com/$resource/?offset=$index&limit=$quantity" . $params;
-    } else {
+	} else {
 		$queryUrl = "$method://api.mixcloud.com/$resource/?limit=$quantity" . $params;
 	}
     
 	# Adding the token to the end of each request returns more details
 	if ($token ne '') {
-        $queryUrl .=   "&access_token=" . $token;
-    }
+		$queryUrl .=   "&access_token=" . $token;
+	}
 	
 	$log->info("Fetching $queryUrl");
 	
@@ -172,6 +180,12 @@ sub _getTracks {
 	$log->debug('_getTracks started.');
 	my ($client, $searchType, $index, $quantity, $queryUrl, $cursor, $parser, $callback, $menu, $total) = @_;
 	
+	my $request = HTTP::Request->new( 'GET' => $queryUrl );
+	$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
+	my $params->{request} = $request;
+	my %headers;
+	$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
+
 	Slim::Networking::SimpleAsyncHTTP->new(
 		
 		sub {
@@ -186,9 +200,9 @@ sub _getTracks {
 			if ($total eq '') {
 				# This limits search results to 400
 				$total = 400;
-            } elsif ($searchType =~ /^categories/) {
-                $total = @$menu;
-            } elsif (scalar @$menu <= $quantity ) {
+			} elsif ($searchType =~ /^categories/) {
+				$total = @$menu;
+			} elsif (scalar @$menu <= $quantity ) {
 				$total = $index + @$menu;
 				$log->debug("short page, truncate total to $total");
 			}
@@ -211,8 +225,9 @@ sub _getTracks {
 			$log->error("error: $_[1]");
 			$callback->([ { name => $_[1], type => 'text' } ]);
 		},
+		$params
 		
-	)->get($queryUrl);
+	)->get($queryUrl, %headers);
 	
 	$log->debug('_getTracks ended.');
 }
@@ -262,6 +277,12 @@ sub urlHandler {
 	return unless $id;
 
 	$log->debug("fetching $queryUrl");
+	my $request = HTTP::Request->new( 'GET' => $queryUrl );
+	$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
+	my $params->{request} = $request;
+	my %headers;
+	$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
+
 
 	my $fetch = sub {
 		Slim::Networking::SimpleAsyncHTTP->new(
@@ -276,7 +297,8 @@ sub urlHandler {
 				$log->error("error: $_[1]");
 				$callback->([ { name => $_[1], type => 'text' } ]);
 			},
-		)->get($queryUrl);
+			$params
+		)->get($queryUrl, %headers);
 	};
 		
 	$fetch->();
