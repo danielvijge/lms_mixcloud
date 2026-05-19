@@ -22,6 +22,7 @@ use JSON::XS::VersionOneAndTwo;
 use XML::Simple;
 use IO::Socket qw(:crlf);
 use Data::Dump qw(dump);
+use HTTP::Request;
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
@@ -275,7 +276,14 @@ sub getMetadataFor {
 
 		$client->pluginData( fetchingMeta => 1 ) if $client;
 		$log->info("Getting track details for $url", dump($item));
-	
+
+		my $request = HTTP::Request->new( 'GET' => $fetchURL );
+		$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
+		my $params->{request} = $request;
+		$params->timeout(30);
+		my %headers;
+		$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
+		
 		Slim::Networking::SimpleAsyncHTTP->new(
 		
 			sub {
@@ -289,10 +297,9 @@ sub getMetadataFor {
 				$client->pluginData( fetchingMeta => 0 ) if $client;
 				$log->error("Error fetching track metadata for $url => $_[1]");
 			},
+			$params
 		
-			{ timeout => 30 },
-		
-		)->get($fetchURL);
+		)->get($fetchURL, %headers);
 	}	
 
 	return {
