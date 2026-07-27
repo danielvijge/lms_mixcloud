@@ -16,7 +16,7 @@ use base qw(Slim::Plugin::OPMLBased);
 use utf8;
 
 use URI::Escape;
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 
 use File::Spec::Functions qw(:ALL);
 use List::Util qw(min max);
@@ -59,7 +59,7 @@ sub getToken {
 		Slim::Networking::SimpleAsyncHTTP->new(			
 				sub {
 					my $http = shift;				
-					my $json = eval { from_json($http->content) };
+					my $json = eval { decode_json($http->content) };
 					if ($json->{"access_token"}) {
 						$token = $json->{"access_token"};
 						$log->debug("token: ".$token);
@@ -190,7 +190,7 @@ sub _getTracks {
 		
 		sub {
 			my $http = shift;				
-			my $json = eval { from_json($http->content) };
+			my $json = eval { decode_json($http->content) };
 			
 			my $nextPage = $json->{'paging'}->{'next'} || '';
 			$log->debug('_getTracks next page: ' . $nextPage);
@@ -288,7 +288,7 @@ sub urlHandler {
 		Slim::Networking::SimpleAsyncHTTP->new(
 			sub {
 				my $http = shift;
-				my $item = eval { from_json($http->content) };
+				my $item = eval { decode_json($http->content) };
 				$log->warn($@) if $@;
 				my $args = { params => {isPlugin => 1}};
 				$callback->( { items => [ Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $item, $args) ] } );

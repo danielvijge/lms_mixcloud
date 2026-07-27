@@ -18,7 +18,7 @@ use base qw(Slim::Player::Protocols::HTTPS);
 use List::Util qw(min max);
 use HTML::Parser;
 use URI::Escape;
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 use XML::Simple;
 use IO::Socket qw(:crlf);
 use Data::Dump qw(dump);
@@ -222,7 +222,7 @@ sub _fetchTrackExtra {
 	my $yt_dlp_cmd = "$exec $exec_options $mixcloud_url 2>&1"; # pipe STDERR to STDOUT
 	$log->info("Executing helper binary: $yt_dlp_cmd");
 	my $info_json_str = `$yt_dlp_cmd`;
-	my $json = eval { from_json($info_json_str) };
+	my $json = eval { decode_json($info_json_str) };
 
 	if ($json) {
 		my $mixcloud_stream_url;
@@ -287,7 +287,7 @@ sub getMetadataFor {
 		Slim::Networking::SimpleAsyncHTTP->new(
 		
 			sub {
-				my $track = eval { from_json($_[0]->content) };
+				my $track = eval { decode_json($_[0]->content) };
 				$log->warn($@) if ($@);
 				makeCacheItem($client, $track, $args);
 				$client->pluginData( fetchingMeta => 0 ) if $client;
