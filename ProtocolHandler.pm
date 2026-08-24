@@ -36,7 +36,7 @@ use constant USER_AGENT => 'Mozilla/5.0 (X11; Linux x86_64; rv:124.0; SlimServer
 use constant META_CACHE_TTL => 86400 * 30; # 24 hours x 30 = 30 days
 
 use constant EXEC => 'yt-dlp';
-use constant EXEC_OPTIONS => '--skip-download --dump-json';
+use constant EXEC_OPTIONS => '--skip-download --no-warnings --dump-json';
 
 my $log   = logger('plugin.mixcloud');
 my $prefs = preferences('plugin.mixcloud');
