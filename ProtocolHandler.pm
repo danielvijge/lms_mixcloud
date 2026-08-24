@@ -146,7 +146,7 @@ sub getNextTrack {
 			
 			$song->streamUrl($meta->{'url'});
 			# See comments regarding bitrate and type in makeCacheItem.
-			# $song->bitrate($meta->{'bitrate'} * 1000);
+			$song->bitrate($meta->{'bitrate'} * 1000);
 
 			$successCb->();
 		}
@@ -210,34 +210,43 @@ sub _fetchTrackExtra {
 		my $mixcloud_stream_url;
 		my $mixcloud_stream_formats = $json->{'formats'};
 
-		# we're interested in the format labelled 'http' and nothing else
-		foreach my $mixcloud_format (@$mixcloud_stream_formats) {
-			if ($mixcloud_format->{'format_id'} eq 'http'){
+		# we're interested in only some formats, in order of preference
+		foreach ('hls-192', 'hls-', 'http') {
+			my $format = $_;
+			foreach my $mixcloud_format (@$mixcloud_stream_formats) {
+				if ($mixcloud_format->{'format_id'} =~ $format) {
+					$log->info("Found matching format for stream: $mixcloud_format->{'format_id'}");
 					$mixcloud_stream_url = $mixcloud_format->{'url'};
+					
+					# need to re-read from cache in case TrackDetails have been updated
+					$meta = $cache->get("mixcloud_item_$id") || {};
+					$meta->{'bitrate'} = ($format eq 'hls-192' ? 192 : 64);
+					$meta->{'type'} = 'AAC (Mixcloud)';
+					$meta->{'url'} = $mixcloud_stream_url;
+					$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
+					$meta->{'album'} = 'Mixcloud';
+					
+					$log->info("Got play URL $meta->{'url'} for $url");
+
+					$cb->($meta) if $cb;
+
+					return $meta;
+				}
 			}
 		}
 
-		my $format = ($mixcloud_stream_url =~ /.mp3/ ? "mp3" : "mp4");
-		# need to re-read from cache in case TrackDetails have been updated
-		$meta = $cache->get("mixcloud_item_$id") || {};
-		# See comments regarding bitrate and type in makeCacheItem.
-		# $meta->{'bitrate'} = $format eq 'mp3' ? '128k' : '64k';
-		$meta->{'format'} = $format;
-		$meta->{'type'} = "$format";
-		$meta->{'url'} = $mixcloud_stream_url;
-		$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
-		$meta->{'album'} = 'Mixcloud';
-		
-		$log->info("Got play URL $meta->{'url'} for $url from download");
+		my @available_formats = ();
+		foreach my $mixcloud_format (@$mixcloud_stream_formats) {
+			push(@available_formats, $mixcloud_format->{'format_id'});
+		}
+		$log->error('Error: correct format could not be found in formats. Only available formats are ' .  join(', ', @available_formats));
+		return;		
+
 	} else {
 		$log->error("Failed to determine stream URL for $url");
 		$log->error("Tried to execute command: $yt_dlp_cmd");
 		$log->error("$info_json_str");
 	}
-		
-	$cb->($meta) if $cb;
-
-	return $meta;
 }
 
 sub getMetadataFor {
@@ -401,8 +410,8 @@ sub makeCacheItem {
 		# There's no way to derive bitrate and type until the stream headers are read.
 		# If bitrate and type fields are set here then they are not updated correctly with data from the headers.
 		# The web UI doesn't update these fields until after the stream starts and the user interacts but cannot be fixed here.
-		# bitrate => '128kbps/64kbps',
-		# type => 'mp3/mp4',
+		# bitrate => '192/64kbps',
+		type => 'AAC (Mixcloud)',
 		passthrough => [ { key => $json->{'key'}} ],
 		updated_time => $json->{'updated_time'},
 		icon => $icon,
