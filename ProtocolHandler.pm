@@ -62,9 +62,16 @@ sub scanUrl {
 }
 
 sub getFormatForURL {
-	my ($class, $url) = @_;		
-	my $meta = $cache->get('mixcloud_item_' . getId($url));
-	return $meta ? $meta->{'format'} : $prefs->get('playformat');
+	return 'mixcloud' # custom-convert type
+}
+
+sub canSeek { 1 }
+
+sub canTranscodeSeek { 1 }
+
+sub getSeekData {
+	my ($class, $client, $song, $newtime) = @_;
+	return { timeOffset => $newtime };
 }
 
 sub new {
@@ -132,41 +139,16 @@ sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
 	my $client = $song->master();
 	my $url = $song->currentTrack()->url;
-	
+
 	_fetchTrackExtra($url, sub {
 			my $meta = shift;
 			return $successCb->() unless $meta;
 			
-			$song->_streamFormat($meta->{'format'});
 			$song->streamUrl($meta->{'url'});
 			# See comments regarding bitrate and type in makeCacheItem.
 			# $song->bitrate($meta->{'bitrate'} * 1000);
-	
-			if ($meta->{'format'} =~ /mp3|mp4|aac|m4a/i) {
-				my $http = Slim::Networking::Async::HTTP->new;
-				$http->send_request( {
-					request     => HTTP::Request->new( GET => $meta->{'url'}, [ 'User-Agent' => USER_AGENT ] ),
-					onStream    => $meta->{format} eq 'mp3' 
-								   ? \&Slim::Utils::Scanner::Remote::parseAudioStream
-								   : \&Slim::Utils::Scanner::Remote::parseMp4Header,
-					onError     => sub {
-						my ($self, $error) = @_;
-						$log->error( "could not find $meta->{'url'} header with format $meta->{'format'} $error" );
-						$successCb->();
-					},
-					passthrough => [ $song->track, 
-									 { cb => sub {
-										# See comments regarding bitrate and type in makeCacheItem.
-										# This line causes the actual bitrate of the stream to be cached.
-										$meta->{bitrate} = int($song->track->bitrate/1000) . 'kbps';
-										$cache->set('mixcloud_item_extra' . getId($url), $meta, META_CACHE_TTL);
-										$successCb->(); 
-									 }},
-									 $meta->{'url'} ],
-				} );
-			} else {
-				$successCb->();
-			}
+
+			$successCb->();
 		}
 	);
 }
@@ -222,7 +204,7 @@ sub _fetchTrackExtra {
 	my $yt_dlp_cmd = "$exec $exec_options $mixcloud_url 2>&1"; # pipe STDERR to STDOUT
 	$log->info("Executing helper binary: $yt_dlp_cmd");
 	my $info_json_str = `$yt_dlp_cmd`;
-	my $json = eval { decode_json($info_json_str) };
+	my $json = decode_json($info_json_str);
 
 	if ($json) {
 		my $mixcloud_stream_url;
@@ -249,7 +231,7 @@ sub _fetchTrackExtra {
 		$log->info("Got play URL $meta->{'url'} for $url from download");
 	} else {
 		$log->error("Failed to determine stream URL for $url");
-		$log->error("Tried to execure command: $yt_dlp_cmd");
+		$log->error("Tried to execute command: $yt_dlp_cmd");
 		$log->error("$info_json_str");
 	}
 		
@@ -287,7 +269,7 @@ sub getMetadataFor {
 		Slim::Networking::SimpleAsyncHTTP->new(
 		
 			sub {
-				my $track = eval { decode_json($_[0]->content) };
+				my $track = decode_json($_[0]->content);
 				$log->warn($@) if ($@);
 				makeCacheItem($client, $track, $args);
 				$client->pluginData( fetchingMeta => 0 ) if $client;
