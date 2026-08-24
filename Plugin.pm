@@ -56,16 +56,19 @@ sub getToken {
 		my %headers;
 		$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
 		
-		Slim::Networking::SimpleAsyncHTTP->new(			
+		Slim::Networking::SimpleAsyncHTTP->new(
 				sub {
 					my $http = shift;				
-					my $json = eval { decode_json($http->content) };
+					my $json = decode_json($http->content);
 					if ($json->{"access_token"}) {
 						$token = $json->{"access_token"};
 						$log->debug("token: ".$token);
-					}				
-					$callback->({token=>$token});	
-				},			
+					}else{
+						$log->error("Error: Failed to extract access token from response");
+						$log->error("Response received: " . $http->content);
+					}
+					$callback->({token=>$token});
+				},
 				sub {
 					$log->error("Error: $_[1]");
 					$callback->({});
@@ -73,7 +76,7 @@ sub getToken {
 				$params
 		)->get($tokenurl, %headers);
 	}else{
-		$callback->({});	
+		$callback->({});
 	}
 }
 
@@ -190,7 +193,7 @@ sub _getTracks {
 		
 		sub {
 			my $http = shift;				
-			my $json = eval { decode_json($http->content) };
+			my $json = decode_json($http->content);
 			
 			my $nextPage = $json->{'paging'}->{'next'} || '';
 			$log->debug('_getTracks next page: ' . $nextPage);
@@ -288,7 +291,7 @@ sub urlHandler {
 		Slim::Networking::SimpleAsyncHTTP->new(
 			sub {
 				my $http = shift;
-				my $item = eval { decode_json($http->content) };
+				my $item = decode_json($http->content);
 				$log->warn($@) if $@;
 				my $args = { params => {isPlugin => 1}};
 				$callback->( { items => [ Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $item, $args) ] } );
