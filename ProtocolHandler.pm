@@ -143,10 +143,12 @@ sub getNextTrack {
 	_fetchTrackExtra($url, sub {
 			my $meta = shift;
 			return $successCb->() unless $meta;
-			
+
 			$song->streamUrl($meta->{'url'});
 			# See comments regarding bitrate and type in makeCacheItem.
-			$song->bitrate($meta->{'bitrate'} * 1000);
+			Slim::Music::Info::setBitrate( $song->track, $meta->{'bitrate'} );
+			Slim::Music::Info::setContentType( $song->track, $meta->{'type' });
+			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 
 			$successCb->();
 		}
@@ -220,8 +222,8 @@ sub _fetchTrackExtra {
 					
 					# need to re-read from cache in case TrackDetails have been updated
 					$meta = $cache->get("mixcloud_item_$id") || {};
-					$meta->{'bitrate'} = ($format eq 'hls-192' ? 192 : 64);
-					$meta->{'type'} = 'AAC (Mixcloud)';
+					$meta->{'bitrate'} = $mixcloud_format->{'tbr'} * 1_000;
+					$meta->{'type'} = $mixcloud_format->{'audio_ext'} eq 'mp3' ? 'audio/mpeg' : 'audio/aac';
 					$meta->{'url'} = $mixcloud_stream_url;
 					$cache->set("mixcloud_item_extra_$id", $meta, META_CACHE_TTL);
 					$meta->{'album'} = 'Mixcloud';
@@ -411,7 +413,7 @@ sub makeCacheItem {
 		# If bitrate and type fields are set here then they are not updated correctly with data from the headers.
 		# The web UI doesn't update these fields until after the stream starts and the user interacts but cannot be fixed here.
 		# bitrate => '192/64kbps',
-		type => 'AAC (Mixcloud)',
+		# type => 'aac/mp3',
 		passthrough => [ { key => $json->{'key'}} ],
 		updated_time => $json->{'updated_time'},
 		icon => $icon,
