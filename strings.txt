@@ -58,12 +58,6 @@ PLUGIN_MIXCLOUD_APIKEY
 PLUGIN_MIXCLOUD_APIKEY_DESC
 	EN	Connect to your Mixcloud account to access your own tracks, favorites, and users you are following.
 
-PLUGIN_MIXCLOUD_PLAYMETHOD
-	EN	Stream format
-
-PLUGIN_MIXCLOUD_PLAYMETHOD_DESC
-	EN	All tracks are available in MP4 format, and selecting a track is fast. However, MP4 does not work natively on old Squeezebox models, and must be transcoded for those players. MP3 has a better sound quality, but loading a track takes a long time, and not all tracks are available in MP3 format.
-	
 PLUGIN_MIXCLOUD_USEBUFFERED
 	EN	Buffer streams in system's temp directory
 
