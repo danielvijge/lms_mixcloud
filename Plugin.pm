@@ -46,23 +46,26 @@ my $log = Slim::Utils::Log->addLogCategory({
 $prefs->init({ apiKey => "", useBuffered => 1, helper_application => 'bundled', helper_application_custom_path => "" });
 
 sub getToken {
+	$log->debug('getToken started');
 	my ($callback) = shift;
 	if ($prefs->get('apiKey')) {
 		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=https://danielvijge.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
-		$log->debug("gettokenurl: ".$tokenurl);
 		my $request = HTTP::Request->new( 'GET' => $tokenurl );
 		$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
 		my $params->{request} = $request;
 		my %headers;
 		$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
 		
+		$log->info("Mixcloud OAuth call to ".$tokenurl);
+
 		Slim::Networking::SimpleAsyncHTTP->new(
 				sub {
 					my $http = shift;				
 					my $json = decode_json($http->content);
+					$log->warn($@) if $@;
 					if ($json->{"access_token"}) {
 						$token = $json->{"access_token"};
-						$log->debug("token: ".$token);
+						$log->debug("Access token: ".$token);
 					}else{
 						$log->error("Error: Failed to extract access token from response");
 						$log->error("Response received: " . $http->content);
@@ -76,25 +79,31 @@ sub getToken {
 				$params
 		)->get($tokenurl, %headers);
 	}else{
+		$log->warn('No authentication, using anonymous browsing. Log in on the settings page');
 		$callback->({});
 	}
+	$log->debug('getToken ended');
 }
 
 sub _provider {
+	$log->debug('_provider started');
 	my ($client, $url, $args) = @_;
 	return Plugins::MixCloud::ProtocolHandler::getMetadataFor($client, $url, $args);
 }
 
 sub _parseTracks {
+	$log->debug('_partTracks started');
 	my ($client, $json, $menu) = @_;
 	my $args = { params => {isPlugin => 1}};
 	my $data = $json->{'data'}; 
 	for my $entry (@$data) {
 		push @$menu, Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $entry, $args);
 	}
+	$log->debug('_partTracks ended');
 }
 
 sub tracksHandler {
+	$log->debug('tracksHandler started');
 	my ($client, $callback, $args, $passDict) = @_;
 
 	my $index    = ($args->{'index'} || 0); # ie, offset
@@ -174,13 +183,12 @@ sub tracksHandler {
 		$queryUrl .=   "&access_token=" . $token;
 	}
 	
-	$log->info("Fetching $queryUrl");
-	
 	_getTracks($client, $searchType, $index, $quantity, $queryUrl, 0, $parser, $callback, $menu, $total);
+	$log->debug('tracksHandler ended');
 }
 		
 sub _getTracks {
-	$log->debug('_getTracks started.');
+	$log->debug('_getTracks started');
 	my ($client, $searchType, $index, $quantity, $queryUrl, $cursor, $parser, $callback, $menu, $total) = @_;
 	
 	my $request = HTTP::Request->new( 'GET' => $queryUrl );
@@ -189,11 +197,14 @@ sub _getTracks {
 	my %headers;
 	$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
 
+	$log->info("Mixcloud API call to ".$queryUrl);
+
 	Slim::Networking::SimpleAsyncHTTP->new(
 		
 		sub {
 			my $http = shift;				
 			my $json = decode_json($http->content);
+			$log->warn($@) if $@;
 			
 			my $nextPage = $json->{'paging'}->{'next'} || '';
 			$log->debug('_getTracks next page: ' . $nextPage);
@@ -225,18 +236,18 @@ sub _getTracks {
 			}
 		},			
 		sub {
-			$log->error("error: $_[1]");
+			$log->error("Error: $_[1]");
 			$callback->([ { name => $_[1], type => 'text' } ]);
 		},
 		$params
 		
 	)->get($queryUrl, %headers);
 	
-	$log->debug('_getTracks ended.');
+	$log->debug('_getTracks ended');
 }
 
 sub _callbackTracks {
-	$log->debug('_callbackTracks started.');
+	$log->debug('_callbackTracks started');
 	my ( $menu, $index, $quantity, $callback ) = @_;
 
 	my $total = scalar @$menu;
@@ -264,10 +275,11 @@ sub _callbackTracks {
 		offset => $index,
 		total  => $total,
 	});
-    $log->debug('_callbackTracks ended.');
+    $log->debug('_callbackTracks ended');
 }
 
 sub urlHandler {
+	$log->debug('urlHandler started');
 	my ($client, $callback, $args) = @_;
 
 	my $url = $args->{'search'};
@@ -279,13 +291,13 @@ sub urlHandler {
 	my $queryUrl = "https://api.mixcloud.com/" . $id ;
 	return unless $id;
 
-	$log->debug("fetching $queryUrl");
 	my $request = HTTP::Request->new( 'GET' => $queryUrl );
 	$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
 	my $params->{request} = $request;
 	my %headers;
 	$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
 
+	$log->info("Mixcloud API call to ".$queryUrl);
 
 	my $fetch = sub {
 		Slim::Networking::SimpleAsyncHTTP->new(
@@ -297,7 +309,7 @@ sub urlHandler {
 				$callback->( { items => [ Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $item, $args) ] } );
 			},
 			sub {
-				$log->error("error: $_[1]");
+				$log->error("Error: $_[1]");
 				$callback->([ { name => $_[1], type => 'text' } ]);
 			},
 			$params
@@ -305,9 +317,11 @@ sub urlHandler {
 	};
 		
 	$fetch->();
+	$log->debug('urlHandler ended');
 }
 
 sub _parseCategories {
+	$log->debug('_parseCategories started');
 	my ($client, $json, $menu, $searchType) = @_;
 	my $i = 0;
 	my $data = $json->{'data'};
@@ -329,9 +343,11 @@ sub _parseCategories {
 			};
         }        
 	}
+	$log->debug('_parseCategories ended');
 }
 
 sub _parseTags {
+	$log->debug('_parseTags started');
 	my ($client, $json, $menu) = @_;
 	my $i = 0;
 	my $data = $json->{'data'};	
@@ -348,9 +364,11 @@ sub _parseTags {
 			passthrough => [ { params => $key} ]
 		};
 	}
+	$log->debug('_parseTags ended');
 }
 
 sub _parseUsers {
+	$log->debug('_parseUsers started');
 	my ($client, $json, $menu) = @_;
 	my $i = 0;
 	my $data = $json->{'data'};
@@ -376,9 +394,11 @@ sub _parseUsers {
 			passthrough => [ { type=>'user', params => $key, parser=>\&_parseUser} ]
 		};
 	}
+	$log->debug('_parseUsers ended');
 }
 
 sub _parseUser {
+	$log->debug('_parseUser started');
 	my ($client, $json, $menu) = @_;
 	my $key = substr($json->{'key'},1);
 	my $isCurrentUser = ($json->{'is_current_user'} ne '');
@@ -403,9 +423,11 @@ sub _parseUser {
 				url  => \&tracksHandler, passthrough => [ { total => $json->{'cloudcast_count'},type => 'cloudcasts',params => $key."cloudcasts"} ] }
 		);
 	}
+	$log->debug('_parseUser ended');
 }
 
 sub _tagHandler {
+	$log->debug('_tagHandler started');
 	my ($client, $callback, $args, $passDict) = @_;
 	my $params = $passDict->{'params'} || '';
 	my $callbacks = [
@@ -417,9 +439,11 @@ sub _tagHandler {
 
 	];
 	$callback->($callbacks);
+	$log->debug('_tagHandler ended');
 }
 
 sub initPlugin {
+	$log->debug('initPlugin started');
 	my $class = shift;
 
 	$cache = Slim::Utils::Cache->new('mixcloud', $class->_pluginDataFor('cacheVersion'));
@@ -451,9 +475,11 @@ sub initPlugin {
 	Slim::Player::ProtocolHandlers->registerHandler(
 		mixcloud => 'Plugins::MixCloud::ProtocolHandler'
 	);
+	$log->debug('initPlugin ended');
 }
 
 sub shutdownPlugin {
+	$log->debug('shutdownPlugin started');
 	my $class = shift;
 }
 
@@ -462,6 +488,7 @@ sub getDisplayName { 'PLUGIN_MIXCLOUD' }
 sub playerMenu { shift->can('nonSNApps') ? undef : 'RADIO' }
 
 sub toplevel {
+	$log->debug('toplevel started');
 	my ($client, $callback, $args) = @_;
 
 	my $callbacks = [
@@ -503,8 +530,8 @@ sub toplevel {
 				);
 				$callback->($callbacks);
 			}
-	)
-	
+	);
+	$log->debug('toplevel ended');
 }
 
 1;

@@ -57,8 +57,10 @@ sub canEnhanceHTTP {
 }
 
 sub scanUrl {
+	$log->debug('scanUrl started');
 	my ($class, $url, $args) = @_;
 	$args->{cb}->( $args->{song}->currentTrack() );
+	$log->debug('scanUrl ended');
 }
 
 sub getFormatForURL {
@@ -70,11 +72,14 @@ sub canSeek { 1 }
 sub canTranscodeSeek { 1 }
 
 sub getSeekData {
+	$log->debug('getSeekData started');
 	my ($class, $client, $song, $newtime) = @_;
+	$log->debug('getSeekData ended');
 	return { timeOffset => $newtime };
 }
 
 sub new {
+	$log->debug('new started');
 	my $class  = shift;
 	my $args   = shift;
 
@@ -86,8 +91,6 @@ sub new {
 	my $streamUrl = $args->{'url'} =~ /^mixcloud/ ? $song->streamUrl() : $args->{'url'};
 	# my $streamUrl = $song->streamUrl() || return;
 	my $track     = $song->pluginData();
-
-	$log->info( 'Remote streaming Mixcloud track: ' . $streamUrl );
 
 	my $params = {
 		url     => $streamUrl,
@@ -104,11 +107,13 @@ sub new {
 		@ISA = qw(Plugins::MixCloud::Buffered);
 	}
 
+	$log->debug('new ended');
 	return $class->SUPER::new($params);
 }
 
 # Tweak user-agent for mixcloud to accept our request
 sub requestString {
+	$log->debug('requestString started');
 	my $self = shift;
 	my $request = $self->SUPER::requestString(@_);
 	my $ua = USER_AGENT;
@@ -116,11 +121,13 @@ sub requestString {
 	$request =~ s/(User-Agent:)\s*.*/\1: $ua/;
 	$request =~ s/Icy-MetaData:.+$CRLF//m;
 
+	$log->debug('requestString ended');
 	return $request; 
 	
 }
 
 sub explodePlaylist {
+	$log->debug('explodePlaylist started');
 	my ( $class, $client, $uri, $callback ) = @_;
 
 	if ( $uri =~ PAGE_URL_REGEXP ) {
@@ -133,9 +140,11 @@ sub explodePlaylist {
 	else {
 		$callback->([$uri]);
 	}
+	$log->debug('explodePlaylist ended');
 }
 
 sub getNextTrack {
+	$log->debug('getNextTrack started');
 	my ($class, $song, $successCb, $errorCb) = @_;
 	my $client = $song->master();
 	my $url = $song->currentTrack()->url;
@@ -153,9 +162,11 @@ sub getNextTrack {
 			$successCb->();
 		}
 	);
+	$log->debug('getNextTrack ended');
 }
 
 sub findExec {
+	$log->debug('findExec started');
 	my $exec = EXEC;
 	if ($^O eq 'MSWin32') {
 		$exec = "$exec.exe";
@@ -180,21 +191,22 @@ sub findExec {
 		}
 		$log->error("Error: Cannot find bin path for yt-dlp");
 	}
+	$log->debug('findExec ended');
 }
 
 # complement track details (url, format, bitrate)
 sub _fetchTrackExtra {
+	$log->debug('_fetchTrackExtra started');
 	my ($url, $cb) = @_;
 	my $id = getId($url);
 	my $simpleMeta = $cache->get("mixcloud_item_$id") || {};
 	my $meta = $cache->get("mixcloud_item_extra_$id") || {};
 	
-	$log->debug("Getting complement for $url => $id");
-	
 	# we already have everything
 	if ($cache->{'url'} && $simpleMeta->{'updated_time'} eq $meta->{'updated_time'}) {
 		$log->debug("Got play URL $meta->{'url'} for $url from cache");
 		$cb->($meta) if $cb;
+		$log->debug('_fetchTrackExtra ended (cached response)');
 		return $meta;
 	}
 	
@@ -206,6 +218,7 @@ sub _fetchTrackExtra {
 	my $yt_dlp_cmd = "$exec $exec_options $mixcloud_url 2>&1"; # pipe STDERR to STDOUT
 	$log->info("Executing helper binary: $yt_dlp_cmd");
 	my $info_json_str = `$yt_dlp_cmd`;
+	$log->debug('yt-dlp command returned: '.$info_json_str);
 	my $json = decode_json($info_json_str);
 
 	if ($json) {
@@ -232,6 +245,7 @@ sub _fetchTrackExtra {
 
 					$cb->($meta) if $cb;
 
+					$log->debug('_fetchTrackExtra ended');
 					return $meta;
 				}
 			}
@@ -252,6 +266,7 @@ sub _fetchTrackExtra {
 }
 
 sub getMetadataFor {
+	$log->debug('getMetadataFor started');
 	my ($class, $client, $url, $args) = @_;
 	
 	my $id = getId($url);
@@ -268,7 +283,6 @@ sub getMetadataFor {
 		my $fetchURL = "https://api.mixcloud.com/$id";
 
 		$client->pluginData( fetchingMeta => 1 ) if $client;
-		$log->info("Getting track details for $url", dump($item));
 
 		my $request = HTTP::Request->new( 'GET' => $fetchURL );
 		$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
@@ -277,6 +291,8 @@ sub getMetadataFor {
 		my %headers;
 		$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
 		
+		$log->info("Mixcloud API call to ".$fetchURL);
+
 		Slim::Networking::SimpleAsyncHTTP->new(
 		
 			sub {
@@ -296,25 +312,26 @@ sub getMetadataFor {
 	}	
 
 	return {
-		bitrate => '128kbps/64kbps',
-		type => 'mp3/mp4 (Mixcloud)',
+		# bitrate => '192bps/64kbps',
+		# type => 'aac/mp3',
 		icon => __PACKAGE__->getIcon,
 	};
 }
 
 # Track Info menu
 sub trackInfo {
+	$log->debug('trackInfo started');
 	my ( $class, $client, $track ) = @_;
 
 	my $url = $track->url;
-	$log->debug("trackInfo: " . $url);
 	return undef;
 }
 
 # Track Info menu
 sub trackInfoURL {
+	$log->debug('trackInfoURL started');
 	my ( $class, $client, $url ) = @_;
-	$log->debug("trackInfoURL: " . $url);
+
 	return undef;
 }
 
@@ -322,12 +339,13 @@ sub trackInfoURL {
 sub handleDirectError {
 	my ( $class, $client, $url, $response, $status_line ) = @_;
 
-	main::INFOLOG && $log->info("Direct stream failed: $url [$response] $status_line");
+	$log->warn("Direct stream failed: $url [$response] $status_line");
 
 	$client->controller()->playerStreamingFailed( $client, 'PLUGIN_MIXCLOUD_STREAM_FAILED' );
 }
 
 sub getIcon {
+	$log->debug('getIcon started');
 	my ( $class, $url, $noFallback ) = @_;
 
 	my $handler;
@@ -340,12 +358,14 @@ sub getIcon {
 }
 
 sub getId {
+	$log->debug('getId started');
 	my $url = shift;
 	my ($id) = $url =~ m{^(?:mixcloud)://(.*)$};
 	return $id;
 }
 
 sub makeCacheItem {
+	$log->debug('makeCacheItem started');
 	my ($client, $json, $args) = @_;
 	
 	my $icon = __PACKAGE__->getIcon;
