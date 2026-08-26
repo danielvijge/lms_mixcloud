@@ -1,25 +1,25 @@
-#!/bin/sh
+#!/bin/bash
 
-while [[ $# -gt 0 ]]; do
-  case ${1} in
-    -v|--version)
-      VERSION="${2}"
-      shift # past argument
-      shift # past value
-      ;;
-    -a|--all-platforms)
-      ALL_PLATFORMS="1"
-      shift # past argument
-      ;;
-    -*|--*)
-      echo "Unknown option ${1}"
-      exit 1
-      ;;
-    *)
-      POSITIONAL_ARGS+=("${1}") # save positional arg
-      shift # past argument
-      ;;
-  esac
+while [ $# -gt 0 ]; do
+	case ${1} in
+		-v|--version)
+			VERSION="${2}"
+			shift # past argument
+			shift # past value
+		;;
+		-a|--all-platforms)
+			ALL_PLATFORMS="1"
+			shift # past argument
+		;;
+		-*|--*)
+			echo "Unknown option ${1}"
+			exit 1
+		;;
+		*)
+			POSITIONAL_ARGS+=("${1}") # save positional arg
+			shift # past argument
+		;;
+	esac
 done
 
 function get_ytdlp_name() {

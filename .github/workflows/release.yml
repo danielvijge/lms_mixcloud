@@ -31,47 +31,25 @@ jobs:
           echo "RELEASE_CHANNEL=dev" >> $GITHUB_ENV
           echo "FOLDER=dev-builds" >> $GITHUB_ENV
 
-      - name: Set yt-dlp version
-        run: |
-          echo "YT_VERSION=`cat yt-dlp.version`" >> $GITHUB_ENV
-
       - name: Test if release number matches x.y
         if: env.RELEASE_CHANNEL == 'release'
         run: |
           ! [[ ${{ env.VERSION }} =~ ^[0-9]+.[0-9]+$ ]] && echo "Release tag must be in the form of x.y." && exit 1 || echo "Release tag format is correct"
-
-      - name: Create install XML file
-        uses: cuchi/jinja2-action@v1.3.0
-        with:
-          template: install.template.xml
-          output_file: install.xml
-          strict: true
-
-      - name: Download yt-dlp binaries for Linux
-        run: |
-          wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp -P Bin && chmod +x Bin/yt-dlp
       
-      - name: Test yt-dlp operation with Mixcloud
-        run: |
-          ./Bin/yt-dlp --skip-download --dump-json https://www.mixcloud.com/johndigweed/transitions-with-john-digweed-and-nickon-faith/ 1> /dev/null
-
-      - name: Download yt-dlp binaries for Windows and MacOS
+      - name: Build package for all platforms
         if: env.RELEASE_CHANNEL == 'release'
         run: |
-          wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp.exe -P Bin
-          wget https://github.com/yt-dlp/yt-dlp/releases/download/${{ env.YT_VERSION }}/yt-dlp_macos -P Bin && chmod +x Bin/yt-dlp_macos
+          bash generate-zip.sh --version ${{ env.VERSION }} --all-platforms
 
       - name: Build package for Linux
+        if: env.RELEASE_CHANNEL == 'dev'
         run: |
-          zip -r lms_mixcloud-${{ env.VERSION }}-linux.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp\.exe Bin/yt-dlp_macos
-      
-      - name: Build packages for Windows and MacOS
-        if: env.RELEASE_CHANNEL == 'release'
-        run: |
-          zip -r lms_mixcloud-${{ env.VERSION }}-windows.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp Bin/yt-dlp_macos
-          rm Bin/yt-dlp && mv Bin/yt-dlp_macos Bin/yt-dlp
-          zip -r lms_mixcloud-${{ env.VERSION }}-macos.zip . -x \*.zip \*.sh \*.git\* \*README\* \*sublime-\* \*.DS_Store\* \*.template.xml Bin\.gitkeep Bin/yt-dlp.exe
+          bash generate-zip.sh --version ${{ env.VERSION }}
 
+      - name: Test yt-dlp operation with Mixcloud
+        run: |
+          ./Bin/$(cat yt-dlp.version)/yt-dlp --skip-download --dump-json https://www.mixcloud.com/johndigweed/transitions-with-john-digweed-and-nickon-faith/ 1> /dev/null
+      
       - name: Calculate SHA for Linux
         run: |
           echo "SHA_LINUX=$(shasum lms_mixcloud-${{ env.VERSION }}-linux.zip | awk '{print $1;}')" >> $GITHUB_ENV
