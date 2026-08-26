@@ -36,6 +36,8 @@ my $CLIENT_SECRET = "scDXfRbbTyDHHGgDhhSccHpNgYUa7QAW";
 my $token = "";
 my $cache;
 
+use constant TOKEN_CACHE_TTL => 3600; # cache access token for 1 hour
+
 my $prefs = preferences('plugin.mixcloud');
 my $log = Slim::Utils::Log->addLogCategory({
 	'category'     => 'plugin.mixcloud',
@@ -48,6 +50,12 @@ $prefs->init({ apiKey => "", useBuffered => 1, helper_application => 'bundled', 
 sub getToken {
 	$log->debug('getToken started');
 	my ($callback) = shift;
+	if ($cache->get('token') ne '') {
+		$log->debug('Returning cached access token');
+		$token = $cache->get('token');
+		$callback->({token=>$token});
+		return;
+	}
 	if ($prefs->get('apiKey')) {
 		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=https://danielvijge.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
 		my $request = HTTP::Request->new( 'GET' => $tokenurl );
@@ -66,6 +74,7 @@ sub getToken {
 					if ($json->{"access_token"}) {
 						$token = $json->{"access_token"};
 						$log->debug("Access token: ".$token);
+						$cache->set('token', $token, TOKEN_CACHE_TTL);
 					}else{
 						$log->error("Error: Failed to extract access token from response");
 						$log->error("Response received: " . $http->content);
@@ -521,7 +530,7 @@ sub toplevel {
 				if ($token ne '') {
 					unshift(@$callbacks, 
 						{ name => string('PLUGIN_MIXCLOUD_MYMIXCLOUD'), type => 'link',
-						url  => \&tracksHandler, passthrough => [ { type=>'user', params => 'me/',parser=>\&_parseUser} ] }						
+						url  => \&tracksHandler, passthrough => [ { type=>'user', params => 'me/',parser=>\&_parseUser} ] }
 					);
 					
 				}
