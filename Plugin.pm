@@ -484,6 +484,15 @@ sub initPlugin {
 	Slim::Player::ProtocolHandlers->registerHandler(
 		mixcloud => 'Plugins::MixCloud::ProtocolHandler'
 	);
+
+	# Warn about possible incompatible version if LMS < 9.2.0
+	# See https://github.com/danielvijge/lms_mixcloud/issues/46
+	# Can be removed after LMS 9.2.0 is released and minTarget is set to 9.2
+	my ($major, $minor, $patch) = split('\.', $main::VERSION);
+	if ($major < 9 or ($major == 9 && $minor < 2)) {
+		$log->error("WARNING: Lyrion Media Server 9.2.0 (builds after 18 June 2026) is required for the Mixcloud plugin to work correctly. See https://github.com/danielvijge/lms_mixcloud/issues/46 for details");
+	}
+
 	$log->debug('initPlugin ended');
 }
 
