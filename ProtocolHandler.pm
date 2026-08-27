@@ -387,6 +387,13 @@ sub makeCacheItem {
 		play => "mixcloud://$id",
 		type => 'text',
 	};
+
+	push @$trackInfo, {
+		type => 'link',
+		name => cstring($client, 'ARTIST') . cstring($client, 'COLON') . ' ' . $json->{'user'}->{'name'},
+		url  => \&Plugins::MixCloud::Plugin::tracksHandler,
+		passthrough => [ { params => substr($json->{'user'}->{'key'},1) , type => 'user', parser => \&Plugins::MixCloud::Plugin::_parseUser } ]
+	} if $json->{'user'}->{'key'};
 	
 	push @$trackInfo, {
 		name => cstring($client, 'LENGTH') . cstring($client, 'COLON') . ' ' . $duration,
@@ -400,20 +407,19 @@ sub makeCacheItem {
 
 	push @$trackInfo, {
 		name => string('PLUGIN_MIXCLOUD_LINK') . cstring($client, 'COLON') . ' ' . $json->{'url'},
+		weblink => $json->{'url'},
 		type => 'text',
 	} if $json->{'url'};
+
+	push @$trackInfo, {
+		name => cstring($client, 'GENRE') . cstring($client, 'COLON') . ' ' . join(', ', map { $_->{'name'} } @{$json->{'tags'}}),
+		type => 'text',
+	} if @{$json->{'tags'}} > 0;
 	
 	push @$trackInfo, {
 		name => string('PLUGIN_MIXCLOUD_EXCLUSIVE') . cstring($client, 'COLON') . ' ' . ($json->{'is_exclusive'} eq 1 ? string('PLUGIN_MIXCLOUD_TRUE') : string('PLUGIN_MIXCLOUD_FALSE')),
 		type => 'text',
 	};
-	
-	push @$trackInfo, {
-		type => 'link',
-		name => cstring($client, 'ARTIST') . cstring($client, 'COLON') . ' ' . $json->{'user'}->{'name'},
-		url  => \&Plugins::MixCloud::Plugin::tracksHandler,
-		passthrough => [ { params => substr($json->{'user'}->{'key'},1) , type => 'user', parser => \&Plugins::MixCloud::Plugin::_parseUser } ]
-	} if $json->{'user'}->{'key'};
 	
 	if (defined $json->{'pictures'}->{'large'}) {
 		$icon = $json->{'pictures'}->{'large'};
@@ -429,6 +435,7 @@ sub makeCacheItem {
 		artist => ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}),
 		album => "Mixcloud",
 		play => "mixcloud://$id",
+		genre => join(', ', map { $_->{'name'} } @{$json->{'tags'}}),
 		# There's no way to derive bitrate and type until the stream headers are read.
 		# If bitrate and type fields are set here then they are not updated correctly with data from the headers.
 		# The web UI doesn't update these fields until after the stream starts and the user interacts but cannot be fixed here.
@@ -453,7 +460,7 @@ sub makeCacheItem {
 	if (!$simpleTracks) {
 		$item->{'items'} = $trackInfo;
 	}
-	
+
 	# Replace some fields if the call comes from Plugin.pm but do not cache.
 	if ($args->{params} && $args->{params}->{isPlugin}) {
 		# line1 and line2 are used in browse view
