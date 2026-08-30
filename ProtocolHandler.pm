@@ -219,7 +219,8 @@ sub _fetchTrackExtra {
 	$log->info("Executing helper binary: $yt_dlp_cmd");
 	my $info_json_str = `$yt_dlp_cmd`;
 	$log->debug('yt-dlp command returned: '.$info_json_str);
-	my $json = decode_json($info_json_str);
+	my $json = eval { decode_json($info_json_str) };
+	$log->warn($@) if ($@);
 
 	if ($json) {
 		my $mixcloud_stream_url;
@@ -295,7 +296,7 @@ sub getMetadataFor {
 		Slim::Networking::SimpleAsyncHTTP->new(
 		
 			sub {
-				my $track = decode_json($_[0]->content);
+				my $track = eval { decode_json($_[0]->content) };
 				$log->warn($@) if ($@);
 				makeCacheItem($client, $track, $args);
 				$client->pluginData( fetchingMeta => 0 ) if $client;

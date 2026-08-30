@@ -69,7 +69,7 @@ sub getToken {
 		Slim::Networking::SimpleAsyncHTTP->new(
 				sub {
 					my $http = shift;				
-					my $json = decode_json($http->content);
+					my $json = eval { decode_json($http->content) };
 					$log->warn($@) if $@;
 					if ($json->{"access_token"}) {
 						$token = $json->{"access_token"};
@@ -212,7 +212,7 @@ sub _getTracks {
 		
 		sub {
 			my $http = shift;				
-			my $json = decode_json($http->content);
+			my $json = eval { decode_json($http->content) };
 			$log->warn($@) if $@;
 			
 			my $nextPage = $json->{'paging'}->{'next'} || '';
@@ -312,7 +312,7 @@ sub urlHandler {
 		Slim::Networking::SimpleAsyncHTTP->new(
 			sub {
 				my $http = shift;
-				my $item = decode_json($http->content);
+				my $item = eval { decode_json($http->content) };
 				$log->warn($@) if $@;
 				my $args = { params => {isPlugin => 1}};
 				$callback->( { items => [ Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $item, $args) ] } );
