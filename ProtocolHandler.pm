@@ -287,7 +287,6 @@ sub getMetadataFor {
 		my $request = HTTP::Request->new( 'GET' => $fetchURL );
 		$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
 		my $params->{request} = $request;
-		$params->timeout(30);
 		my %headers;
 		$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
 		
@@ -456,13 +455,13 @@ sub makeCacheItem {
 	$cache->set("mixcloud_item_$id", $item, META_CACHE_TTL);
 	
 	# this is ugly... for whatever reason the EN/Classic skins can't handle tracks with an items element
-	my $simpleTracks = (($args->{params} && $args->{params}->{isWeb} && preferences('server')->get('skin')=~ /Classic|EN/i) ? 1 : 0);
+	my $simpleTracks = ( (ref($args) eq 'HASH' && $args->{params} && $args->{params}->{isWeb} && preferences('server')->get('skin') =~ /Classic|EN/i) ? 1 : 0);
 	if (!$simpleTracks) {
 		$item->{'items'} = $trackInfo;
 	}
 
 	# Replace some fields if the call comes from Plugin.pm but do not cache.
-	if ($args->{params} && $args->{params}->{isPlugin}) {
+	if (ref($args) eq 'HASH' && $args->{params} && $args->{params}->{isPlugin}) {
 		# line1 and line2 are used in browse view
 		# artist and title are used in the now playing and playlist views
 		$item->{name} = $json->{'name'} . ' by ' . ($json->{'user'}->{'name'} ? $json->{'user'}->{'name'} : $json->{'user'}->{'username'}) . ($duration ? ' (' . $duration . ')': '') .
