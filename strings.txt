@@ -84,6 +84,12 @@ PLUGIN_MIXCLOUD_EXCLUSIVE
 
 PLUGIN_MIXCLOUD_EXCLUSIVE_SHORT
 	EN	Excl.
+
+PLUGIN_MIXCLOUD_HIDE_EXCLUSIVE
+	EN	Hide exclusive tracks
+
+PLUGIN_MIXCLOUD_HIDE_EXCLUSIVE_DESC
+	EN	Exclusive tracks are likely not playable. If not hidden, exclusive tracks are marked by "(Excl.)" in the title.
 	
 PLUGIN_MIXCLOUD_TRUE
 	EN	Yes

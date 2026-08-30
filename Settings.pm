@@ -21,7 +21,7 @@ sub page {
 
 sub prefs {
 	my $class = shift;
-	my @prefs = ( preferences('plugin.mixcloud'), qw(apiKey), qw(helper_application), qw(helper_application_custom_path) );
+	my @prefs = ( preferences('plugin.mixcloud'), qw(apiKey), qw(helper_application), qw(helper_application_custom_path), qw(hide_exclusive) );
 	push @prefs, qw(useBuffered) unless Slim::Player::Protocols::HTTP->can('canEnhanceHTTP');
 	return @prefs;
 }

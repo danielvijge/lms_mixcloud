@@ -10,7 +10,11 @@
 		[% WRAPPER setting title="PLUGIN_MIXCLOUD_USEBUFFERED" desc="PLUGIN_MIXCLOUD_USEBUFFERED_DESC" %]
 		<input type="checkbox" [% IF prefs.pref_useBuffered %]checked="1" [% END %] class="stdedit" name="pref_useBuffered" id="useBuffered" value="1" />
 		[% END %]
-	[% END %]	
+	[% END %]
+
+	[% WRAPPER setting title="PLUGIN_MIXCLOUD_HIDE_EXCLUSIVE" desc="PLUGIN_MIXCLOUD_HIDE_EXCLUSIVE_DESC" %]
+		<input type="checkbox" [% IF prefs.pref_hide_exclusive %]checked="1" [% END %] class="stdedit" name="pref_hide_exclusive" id="hide_exclusive" value="1" />
+	[% END %]
 
 	[% WRAPPER setting title="PLUGIN_MIXCLOUD_HELPER_APPLICATION" desc="PLUGIN_MIXCLOUD_HELPER_APPLICATION_DESC" %]
 		<input type="radio" class="stdedit" name="pref_helper_application" id="helper_application_bundled" value="bundled"[% IF prefs.helper_application == 'bundled' %] checked="checked"[% END %] /><label for="helper_application_bundled">[% 'PLUGIN_MIXCLOUD_HELPER_APPLICATION_BUNDLED' | getstring %]</label><br/>

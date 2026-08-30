@@ -45,7 +45,7 @@ my $log = Slim::Utils::Log->addLogCategory({
 	'description'  => string('PLUGIN_MIXCLOUD'),
 });
 
-$prefs->init({ apiKey => "", useBuffered => 1, helper_application => 'bundled', helper_application_custom_path => "" });
+$prefs->init({ apiKey => "", useBuffered => 1, helper_application => 'bundled', helper_application_custom_path => "", hide_exclusive => 1 });
 
 sub getToken {
 	$log->debug('getToken started');
@@ -106,6 +106,7 @@ sub _parseTracks {
 	my $args = { params => {isPlugin => 1}};
 	my $data = $json->{'data'}; 
 	for my $entry (@$data) {
+		if ($prefs->get('hide_exclusive') eq 1 && $entry->{'is_exclusive'} eq 1) { next; }
 		push @$menu, Plugins::MixCloud::ProtocolHandler::makeCacheItem($client, $entry, $args);
 	}
 	$log->debug('_partTracks ended');
