@@ -23,6 +23,7 @@ use List::Util qw(min max);
 use Date::Parse;
 use Data::Dump qw(dump);
 use HTTP::Request;
+use Slim::Networking::Async::HTTP;
 
 use Slim::Utils::Strings qw(string cstring);
 use Slim::Utils::Prefs;
@@ -60,33 +61,38 @@ sub getToken {
 		my $tokenurl = "https://www.mixcloud.com/oauth/access_token?client_id=".$CLIENT_ID."&redirect_uri=https://danielvijge.github.io/lms_mixcloud/app.html&client_secret=".$CLIENT_SECRET."&code=".$prefs->get('apiKey');
 		my $request = HTTP::Request->new( 'GET' => $tokenurl );
 		$request->protocol('HTTP/1.1');	# Force request because, since May 2026, seen destination rejecting HTTP/1.0 which is LMS default
-		my $params->{request} = $request;
-		my %headers;
-		$headers{'Connection'} = 'close';	# BAD BAD force close to try to prevent keep-alive in http/1.1
-		
+		$request->header('Connection' => 'close');	# BAD BAD force close to try to prevent keep-alive in http/1.1
+
 		$log->info("Mixcloud OAuth call to ".$tokenurl);
 
-		Slim::Networking::SimpleAsyncHTTP->new(
-				sub {
-					my $http = shift;				
-					my $json = eval { decode_json($http->content) };
-					$log->warn($@) if $@;
-					if ($json->{"access_token"}) {
-						$token = $json->{"access_token"};
-						$log->debug("Access token: ".$token);
-						$cache->set('token', $token, TOKEN_CACHE_TTL);
-					}else{
-						$log->error("Error: Failed to extract access token from response");
-						$log->error("Response received: " . $http->content);
-					}
-					$callback->({token=>$token});
-				},
-				sub {
-					$log->error("Error: $_[1]");
-					$callback->({});
-				},
-				$params
-		)->get($tokenurl, %headers);
+		# Mixcloud's OAuth endpoint answers with "Content-Encoding: identity".
+		# SimpleAsyncHTTP in LMS < 9.2 tries to inflate any Content-Encoding,
+		# which mangles the JSON (fixed in LMS 9.2, see issue #46). The
+		# lower-level Async::HTTP client never decodes the body, so it works
+		# on every LMS version.
+		Slim::Networking::Async::HTTP->new->send_request({
+			request => $request,
+			Timeout => 30,
+			onBody  => sub {
+				my $http = shift;
+				my $content = $http->response->content;
+				my $json = eval { decode_json($content) };
+				$log->warn($@) if $@;
+				if ($json->{"access_token"}) {
+					$token = $json->{"access_token"};
+					$log->debug("Access token: ".$token);
+					$cache->set('token', $token, TOKEN_CACHE_TTL);
+				}else{
+					$log->error("Error: Failed to extract access token from response");
+					$log->error("Response received: " . $content);
+				}
+				$callback->({token=>$token});
+			},
+			onError => sub {
+				$log->error("Error: $_[1]");
+				$callback->({});
+			},
+		});
 	}else{
 		$log->warn('No authentication, using anonymous browsing. Log in on the settings page');
 		$callback->({});
@@ -485,14 +491,6 @@ sub initPlugin {
 	Slim::Player::ProtocolHandlers->registerHandler(
 		mixcloud => 'Plugins::MixCloud::ProtocolHandler'
 	);
-
-	# Warn about possible incompatible version if LMS < 9.2.0
-	# See https://github.com/danielvijge/lms_mixcloud/issues/46
-	# Can be removed after LMS 9.2.0 is released and minTarget is set to 9.2
-	my ($major, $minor, $patch) = split('\.', $main::VERSION);
-	if ($major < 9 or ($major == 9 && $minor < 2)) {
-		$log->error("WARNING: Lyrion Media Server 9.2.0 (builds after 18 June 2026) is required for the Mixcloud plugin to work correctly with authentication. See https://github.com/danielvijge/lms_mixcloud/issues/46 for details");
-	}
 
 	$log->debug('initPlugin ended');
 }
